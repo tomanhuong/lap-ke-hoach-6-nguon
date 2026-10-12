@@ -439,6 +439,15 @@ textarea.fi { resize: vertical; line-height: 1.45; }
 .rva b { color: var(--t1); font-family: 'Space Mono', monospace; font-size: 12px; }
 .sgd { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--wa); vertical-align: middle; }
 .sgd.er { background: var(--er); }
+/* kho rà soát: nguyên trang từng tuần */
+.rvf { margin-top: 4px; }
+.rvf-h { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--p); font-size: 14px; }
+.rvf-s { font-size: 13.5px; color: var(--t2); padding: 8px 10px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 8px; line-height: 1.5; }
+.rvf-s b { color: var(--t1); }
+.rvf-o { font-weight: 700; color: var(--t1); font-size: 14px; margin: 10px 0 2px; }
+.rvf-k { font-size: 13.5px; margin: 4px 0 0 8px; line-height: 1.45; }
+.rvf-a { font-size: 13px; color: var(--t2); margin: 2px 0 0 24px; line-height: 1.45; }
+.rvf-q { margin-top: 10px; border-top: 1px dashed var(--b1); padding-top: 6px; }
 </style>
 </head>
 <body>
@@ -1228,7 +1237,7 @@ ACT.asub=(id,v)=>{ if(!SUBS.some(x=>x[0]===v)) return; UI.asub=v; LS.set(K.ui,UI
 const closedTag=p=>isClosed(p)?' · 🏁 đã chốt'+(oFinal(p)!==null?' '+fmt(oFinal(p)):''):'';
 
 /* ---------------- rà soát tuần: nhắc từ thứ Sáu, hạn trước 24:00 thứ Bảy ---------------- */
-const RVQ=[['root_cause','3. Nguyên nhân gốc rễ là gì?','Hỏi «vì sao» cho tới khi chạm nguyên nhân mình đổi được'],['do_more','4. Việc gì làm nhiều hơn?',''],['do_less','5. Việc gì làm ít đi?',''],['stop_doing','6. Việc gì dừng làm?',''],['start_doing','7. Làm mới việc gì?',''],['next_goal','8. Mục tiêu tuần tiếp theo là gì?','Viết thành cam kết đo được; tuần sau câu 1 sẽ hỏi lại'],['lesson','📚 Bài học của tuần (một câu, để lưu vào kho bài học)','']];
+const RVQ=[['root_cause','3. Nguyên nhân gốc rễ là gì?','Hỏi «vì sao» cho tới khi chạm nguyên nhân mình đổi được'],['do_more','4. Việc gì làm nhiều hơn?',''],['do_less','5. Việc gì làm ít đi?',''],['stop_doing','6. Việc gì dừng làm?',''],['start_doing','7. Làm mới việc gì?',''],['next_goal','8. Mục tiêu tuần tiếp theo là gì?','Viết thành cam kết đo được; tuần sau câu 1 sẽ hỏi lại']];
 const RVK=['done_state','done_note','achieve_pct','achieve_note'].concat(RVQ.map(q=>q[0]));
 const DONE_ST={all:'Đã làm hết',part:'Làm được một phần',none:'Chưa làm'};
 let RV={ws:'',dirty:false};       // phần đang viết được giữ ở đây để không mất khi màn hình vẽ lại
@@ -1263,7 +1272,7 @@ ACT.rvSave=()=>{
   const old=reviewOf(ws),snap=!old||ws>=addD(weekStart(td()),-7),sm=weekSum(ws),rec={gid:RVG,date:ws,value:0,note:''};   // số liệu chụp lại lúc lưu; tuần cũ hơn thì giữ số đã chụp
   RVK.forEach(k=>{ rec[k]=k==='achieve_pct'?(pct===''?'':String(Math.round(num(pct)))):v(k); });
   if(!old||!old.saved_on) rec.saved_on=td();
-  put('logs',Object.assign({id:'rv_'+ws},old||{},rec,snap?{pct:sm.pct===null?'':String(sm.pct),rate:sm.rate===null?'':String(Math.round(sm.rate*100))}:{}));
+  put('logs',Object.assign({id:'rv_'+ws},old||{},rec,snap||!(old&&old.snap)?{snap:JSON.stringify(rvSnap(ws))}:{},snap?{pct:sm.pct===null?'':String(sm.pct),rate:sm.rate===null?'':String(Math.round(sm.rate*100))}:{}));
   RV.dirty=false; commit(); const ot=rvOnTime(reviewOf(ws)); toast('Đã lưu rà soát tuần '+wkLabel(ws)+(ot===0?' · đúng hạn':ot?' · trễ '+ot+' ngày':''),'ok');
 };
 ACT.rvDel=()=>{ const r=reviewOf(RV.ws); if(!r) return; askDel('Xóa bản rà soát tuần '+wkLabel(RV.ws)+'?','',()=>{ del('logs',r.id); RV.dirty=false; commit(); }); };
@@ -1276,7 +1285,7 @@ function rvAnswers(r){
   const rows=[]; if(r.done_state||r.done_note) rows.push(['1. Cam kết tuần trước',[DONE_ST[r.done_state]||'',r.done_note].filter(Boolean).join(': ')]);
   const p=r.achieve_pct===''||r.achieve_pct==null?'':Math.round(num(r.achieve_pct))+'%'; if(p||r.achieve_note) rows.push(['2. Đạt so với kỳ vọng',[p,r.achieve_note].filter(Boolean).join(' · ')]);
   RVQ.forEach(q=>{ if(String(r[q[0]]||'').trim()) rows.push([q[1].replace(/\?.*$/,'').replace(/^📚 /,''),r[q[0]]]); });
-  [['win','Ghi nhận'],['stuck','Phản hồi'],['plan','Điều chỉnh tuần tới']].forEach(x=>{ if(String(r[x[0]]||'').trim()) rows.push([x[1],r[x[0]]]); });   // bản rà soát kiểu cũ
+  [['lesson','Bài học'],['win','Ghi nhận'],['stuck','Phản hồi'],['plan','Điều chỉnh tuần tới']].forEach(x=>{ if(String(r[x[0]]||'').trim()) rows.push([x[1],r[x[0]]]); });   // bản rà soát kiểu cũ
   return rows.map(x=>'<div class="rva"><b>'+esc(x[0])+':</b> <span class="pre">'+esc(x[1])+'</span></div>').join('');
 }
 function reviewView(){
@@ -1287,7 +1296,7 @@ function reviewView(){
   const box=(n,l,c)=>'<div class="sb3"><div class="sb3n"'+(c?' style="color:var(--'+c+')"':'')+'>'+n+'</div><div class="sb3l">'+l+'</div></div>';
   let h='<div class="wkn"><button class="mb" data-a="rvNav" data-v="-1" title="Tuần trước đó">◀</button><div class="wkt">Tuần '+wkLabel(ws)+'<div class="wks">'+[ws===cw?'tuần này':ws===addD(cw,-7)?'tuần trước':'',saved?'✓ đã rà soát':'chưa rà soát'].filter(Boolean).join(' · ')+'</div></div><button class="mb" data-a="rvNav" data-v="1" title="Tuần sau đó"'+(ws>=cw?' disabled':'')+'>▶</button></div>';
   h+='<div class="strow" style="margin:0 0 14px">'+box(sm.rate===null?'—':Math.round(sm.rate*100)+'%','Nhịp KA'+(sm.due?' · '+sm.done+'/'+sm.due:''),sm.rate===null?'t3':sm.rate>=.8?'ok':sm.rate>=.5?'wa':'er')+box(sm.moved+'/'+sm.krs,'KR có nhích',sm.moved?'p':'t3')+box(sm.blk,'Đang bị chặn',sm.blk?'er':'t1')+'</div>';
-  h+=rvDueLine(ws,saved);
+  h+=rvDueLine(ws,saved); { const n=reviews().length; if(n) h+='<div style="text-align:center;margin:-8px 0 14px"><button class="lnk" style="margin:0" data-a="rvKho">📚 Tra cứu kho rà soát các tuần ('+n+')</button></div>'; }
   os.forEach(p=>{ const gs=liveGoals(p.id),pp=pPct(p.id),over=p.end_date&&p.end_date<t?dB(p.end_date,t):0;
     h+='<div class="card n" style="padding:16px"><div class="row top"><div class="f1"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div></div><div class="mono tp" style="font-weight:700;flex-shrink:0">'+(pp===null?'—':pp+'%')+'</div></div>';
     if(over) h+='<div class="row" style="gap:10px;margin-top:8px"><div class="f1 ovs" style="margin:0;color:var(--wa)">🏁 Đã hết chu kỳ '+over+' ngày, chưa chốt.</div><button class="mb p" data-a="closeO" data-id="'+esc(p.id)+'">Chốt</button></div>';
@@ -1309,12 +1318,39 @@ function reviewView(){
   h+='<div style="display:flex;gap:10px"><button class="bp" style="flex:1" data-a="rvSave">'+(saved?'LƯU THAY ĐỔI':'LƯU RÀ SOÁT TUẦN')+'</button>'+(saved?'<button class="mb er" data-a="rvDel">🗑 Xóa</button>':'')+'</div></div>';
   return h+rvHistory();
 }
-function rvHistory(){
-  const rs=reviews(); if(!rs.length) return '<div class="hint" style="margin-top:6px">Chưa có tuần nào được rà soát.</div>';
-  const all=OPEN.has('rvall'),sh=all?rs:rs.slice(0,8),pc=v=>v===''||v==null?null:Math.round(num(v));
-  return '<div class="sl" style="margin:24px 0 12px">📚 Kho bài học các tuần ('+rs.length+')</div>'+sh.map(r=>{ const ot=rvOnTime(r),a=pc(r.pct),b=pc(r.rate),k=pc(r.achieve_pct),nid='rvh-'+r.date,top=String(r.lesson||r.next_goal||r.plan||r.win||'').trim();
-    return '<div class="ni rvh" data-wk="'+esc(r.date)+'" style="'+(r.date===RV.ws?'border-color:var(--p)':'')+'"><div class="row top" style="gap:8px"><div class="f1"><div style="font-weight:bold;font-size:14px">Tuần '+wkLabel(r.date)+'</div><div class="ovs" style="margin:2px 0 0">'+[ot===0?'<span class="tok">đúng hạn</span>':ot?'<span class="twa">trễ '+ot+' ngày</span>':'',k===null?'':'đạt '+k+'% kỳ vọng',a===null?'':'O đạt '+a+'%',b===null?'':'nhịp '+b+'%'].filter(Boolean).join(' · ')+'</div>'+(top?'<div class="clip2">'+(r.lesson?'📚 ':'')+esc(top)+'</div>':'')+'</div>'+togBtn(nid)+'</div>'+nest(nid,rvAnswers(r)+'<button class="mb" style="margin-top:10px" data-a="rvGo" data-id="'+esc(r.date)+'">✏️ Mở để sửa</button>')+'</div>'; }).join('')+(rs.length>8?'<button class="lnk" data-a="more" data-id="rvall" style="margin-top:4px">'+(all?'Thu gọn':'Xem tất cả '+rs.length+' tuần')+'</button>':'');
+/* ---------- kho rà soát: lưu nguyên trang của từng tuần để tra cứu ---------- */
+function rvSnap(ws){   // chụp lại số liệu tuần: tổng, từng O → KR → KA đúng như trang rà soát
+  const sm=weekSum(ws);
+  return {v:1,sum:{done:sm.done,due:sm.due,moved:sm.moved,krs:sm.krs,blk:sm.blk,pct:sm.pct},os:runPs().map(p=>({n:p.name,pp:pPct(p.id),ks:liveGoals(p.id).map(g=>({n:g.name,d:krWeek(g,ws),c:gCur(g),t:gTarget(g),u:g.unit||'',pc:gPct(g),st:gSt(g).l,ka:DB.behaviors.filter(b=>b.gid===g.id&&!b.archived).map(b=>{ const k=kaWeek(b,ws); return {n:b.name,l:b.habit?'đã thành nếp':b.rhythm==='event'?k.done+' lần':!k.due?'chưa đến nhịp':k.done+'/'+k.due+(b.rhythm==='weekly'?' lần':b.rhythm==='multi'?' ngày đủ':' ngày'),r:k.due?Math.round(k.done/k.due*100):null}; })}))}))};
 }
+const rvSnapOf=r=>{ try{ const x=JSON.parse(r.snap||''); if(x&&Array.isArray(x.os)) return x; }catch(e){} return null; };
+function rvFull(r){   // nguyên trang rà soát của một tuần, chỉ để đọc
+  let x=rvSnapOf(r),live=false; if(!x){ x=rvSnap(r.date); live=true; }
+  const s=x.sum||{},ot=rvOnTime(r);
+  let h='<div class="rvf"><div class="rvf-h">Rà soát tuần '+wkLabel(r.date)+'</div><div class="ovs" style="margin:2px 0 8px">Hạn thứ Bảy '+fd(rvDeadline(r.date))+(r.saved_on?' · nộp '+fd(r.saved_on)+(ot===0?' · <span class="tok">đúng hạn</span>':ot?' · <span class="twa">trễ '+ot+' ngày</span>':''):'')+'</div>';
+  h+='<div class="rvf-s">Nhịp KA <b>'+(s.due?Math.round(s.done/s.due*100)+'%':'—')+'</b>'+(s.due?' ('+s.done+'/'+s.due+')':'')+' · <b>'+(s.moved||0)+'/'+(s.krs||0)+'</b> KR có nhích · <b>'+(s.blk||0)+'</b> hành động bị chặn · O đạt <b>'+(s.pct==null?'—':s.pct+'%')+'</b></div>';
+  (x.os||[]).forEach(o=>{ h+='<div class="rvf-o">📁 '+esc(o.n)+(o.pp==null?'':' · '+o.pp+'%')+'</div>';
+    (o.ks||[]).forEach(k=>{ h+='<div class="rvf-k">🎯 '+esc(k.n)+' <span class="'+(k.d>0?'tok':'')+'">+'+fmt(k.d)+'</span> <span class="ovs" style="margin:0">· '+fmt(k.c)+' / '+fmt(k.t)+' '+esc(k.u)+' · '+k.pc+'% · '+esc(k.st)+'</span></div>'+(k.ka||[]).map(a=>'<div class="rvf-a">💡 '+esc(a.n)+' · <span class="'+(a.r==null?'':a.r>=80?'tok':a.r>=50?'twa':'ter')+'">'+esc(a.l)+'</span></div>').join(''); }); });
+  if(live) h+='<div class="hint">Bản rà soát này lưu trước khi app chụp số liệu tuần; số ở trên được tính lại từ dữ liệu hiện có.</div>';
+  return h+'<div class="rvf-q">'+rvAnswers(r)+'</div></div>';
+}
+let RVQRY='';
+const rvText=r=>{ const x=rvSnapOf(r); return nrm([wkLabel(r.date)].concat(RVK.map(k=>r[k]),['lesson','win','stuck','plan'].map(k=>r[k]),x?x.os.map(o=>[o.n].concat(o.ks.map(k=>k.n+' '+k.ka.map(a=>a.n).join(' '))).join(' ')):[]).join(' ')); };
+function rvList(){
+  const q=nrm(RVQRY),rs=reviews().filter(r=>!q||rvText(r).includes(q)),all=OPEN.has('rvall')||!!q,sh=all?rs:rs.slice(0,8),pc=v=>v===''||v==null?null:Math.round(num(v));
+  if(!rs.length) return '<div class="hint">Không có tuần nào khớp «'+esc(RVQRY)+'».</div>';
+  return sh.map(r=>{ const ot=rvOnTime(r),a=pc(r.pct),b=pc(r.rate),k=pc(r.achieve_pct),nid='rvh-'+r.date,top=String(r.next_goal||r.plan||r.win||'').trim();
+    return '<div class="ni rvh" data-wk="'+esc(r.date)+'" style="'+(r.date===RV.ws?'border-color:var(--p)':'')+'"><div class="row top" style="gap:8px"><div class="f1"><div style="font-weight:bold;font-size:14px">Tuần '+wkLabel(r.date)+'</div><div class="ovs" style="margin:2px 0 0">'+[ot===0?'<span class="tok">đúng hạn</span>':ot?'<span class="twa">trễ '+ot+' ngày</span>':'',k===null?'':'đạt '+k+'% kỳ vọng',a===null?'':'O đạt '+a+'%',b===null?'':'nhịp '+b+'%'].filter(Boolean).join(' · ')+'</div>'+(top?'<div class="clip2">🎯 '+esc(top)+'</div>':'')+'</div>'+togBtn(nid)+'</div>'+nest(nid,rvFull(r)+'<button class="mb" style="margin-top:10px" data-a="rvGo" data-id="'+esc(r.date)+'">✏️ Mở để sửa</button>')+'</div>'; }).join('')+(!q&&rs.length>8?'<button class="lnk" data-a="more" data-id="rvall" style="margin-top:4px">'+(all?'Thu gọn':'Xem tất cả '+rs.length+' tuần')+'</button>':'');
+}
+function rvHistory(){
+  const n=reviews().length; if(!n) return '<div class="hint" style="margin-top:6px" id="rv-kho">Chưa có tuần nào được rà soát. Mỗi bản rà soát sau khi lưu sẽ nằm nguyên trong kho này để tra cứu.</div>';
+  return '<div id="rv-kho"><div class="adr" style="margin:26px 0 10px"><div class="sl" style="margin:0">📚 Kho rà soát các tuần ('+n+')</div><button class="mb" data-a="rvExport">⬇ Tải về</button></div><input class="fi" id="rv-q" type="search" data-i="rvq" value="'+esc(RVQRY)+'" placeholder="Tìm trong các tuần: chữ trong câu trả lời, tên KR, KA…" style="margin-bottom:10px"><div id="rv-list">'+rvList()+'</div></div>';
+}
+INP.rvq=el=>{ RVQRY=el.value; const l=$('rv-list'); if(l) l.innerHTML=rvList(); };
+ACT.rvKho=()=>{ const e=$('rv-kho'); if(e) e.scrollIntoView({block:'start'}); };
+ACT.rvExport=()=>{ const rs=reviews(); if(!rs.length) return;
+  const txt=rs.map(r=>{ const d=document.createElement('div'); d.innerHTML=rvFull(r); d.querySelectorAll('div').forEach(x=>x.insertAdjacentText('afterend','\n')); return d.textContent.replace(/\n{2,}/g,'\n').trim(); }).join('\n\n────────────\n\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+txt],{type:'text/plain;charset=utf-8'})); a.download='RaSoatTuan_'+td()+'.txt'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Đã tải '+rs.length+' tuần rà soát','ok'); };
 
 /* ---------------- chốt chu kỳ: tự chấm điểm, câu chuyện sau con số, bài học ---------------- */
 const pMeta=p=>[p.role,p.cycle,(p.start_date||p.end_date)?fd(p.start_date)+' – '+fd(p.end_date):''].filter(Boolean);
