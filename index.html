@@ -431,6 +431,14 @@ textarea.fi { resize: vertical; line-height: 1.45; }
 .imn { font-size: 13px; line-height: 1.45; margin-top: 6px; }
 .imnotes { margin: 8px 0 0 18px; font-size: 13px; color: var(--t2); }
 .imlist { font-size: 13.5px; line-height: 1.55; color: var(--t2); }
+/* rà soát tuần: 8 câu, kho bài học */
+.rvp { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+.rvp .qc.on { background: var(--p); color: #000; border-color: var(--p); }
+.rvc { font-size: 14px; line-height: 1.5; margin-bottom: 8px; border-color: rgba(255,212,0,0.35); }
+.rva { font-size: 13.5px; line-height: 1.5; color: var(--t2); margin-top: 6px; }
+.rva b { color: var(--t1); font-family: 'Space Mono', monospace; font-size: 12px; }
+.sgd { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--wa); vertical-align: middle; }
+.sgd.er { background: var(--er); }
 </style>
 </head>
 <body>
@@ -1215,31 +1223,62 @@ $('restore-file').addEventListener('change',e=>{ const f=e.target.files[0]; e.ta
    RÀ SOÁT TUẦN và CHỐT CHU KỲ (nằm trong tab Phân Tích)
    ============================================================ */
 const SUBS=[['ov','Tổng quan'],['wk','Rà soát tuần'],['cl','Chốt chu kỳ']];
-const segBar=()=>'<div class="seg">'+SUBS.map(x=>'<button class="sgb'+(UI.asub===x[0]?' on':'')+'" data-a="asub" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
+const segBar=()=>{ const st=runPs().length?rvState().st:'none',dot=st==='late'?' <i class="sgd er"></i>':st==='today'||st==='soon'?' <i class="sgd"></i>':''; return '<div class="seg">'+SUBS.map(x=>'<button class="sgb'+(UI.asub===x[0]?' on':'')+'" data-a="asub" data-v="'+x[0]+'">'+x[1]+(x[0]==='wk'?dot:'')+'</button>').join('')+'</div>'; };
 ACT.asub=(id,v)=>{ if(!SUBS.some(x=>x[0]===v)) return; UI.asub=v; LS.set(K.ui,UI); render(); $('main').scrollTop=0; };
 const closedTag=p=>isClosed(p)?' · 🏁 đã chốt'+(oFinal(p)!==null?' '+fmt(oFinal(p)):''):'';
 
-/* ---------------- rà soát tuần ---------------- */
-let RV={ws:'',win:'',stuck:'',plan:'',dirty:false};       // phần đang viết được giữ ở đây để không mất khi màn hình vẽ lại
-const RVK=['win','stuck','plan'];
-function rvLoad(ws){ const r=reviewOf(ws)||{}; RV={ws,win:r.win||'',stuck:r.stuck||'',plan:r.plan||'',dirty:false}; }
+/* ---------------- rà soát tuần: nhắc từ thứ Sáu, hạn trước 24:00 thứ Bảy ---------------- */
+const RVQ=[['root_cause','3. Nguyên nhân gốc rễ là gì?','Hỏi «vì sao» cho tới khi chạm nguyên nhân mình đổi được'],['do_more','4. Việc gì làm nhiều hơn?',''],['do_less','5. Việc gì làm ít đi?',''],['stop_doing','6. Việc gì dừng làm?',''],['start_doing','7. Làm mới việc gì?',''],['next_goal','8. Mục tiêu tuần tiếp theo là gì?','Viết thành cam kết đo được; tuần sau câu 1 sẽ hỏi lại'],['lesson','📚 Bài học của tuần (một câu, để lưu vào kho bài học)','']];
+const RVK=['done_state','done_note','achieve_pct','achieve_note'].concat(RVQ.map(q=>q[0]));
+const DONE_ST={all:'Đã làm hết',part:'Làm được một phần',none:'Chưa làm'};
+let RV={ws:'',dirty:false};       // phần đang viết được giữ ở đây để không mất khi màn hình vẽ lại
+function rvLoad(ws){ const r=reviewOf(ws)||{}; RV={ws,dirty:false}; RVK.forEach(k=>{ RV[k]=r[k]==null?'':String(r[k]); }); }
 INP.rv=el=>{ const k=el.dataset.v; if(RVK.includes(k)){ RV[k]=el.value; RV.dirty=true; } };
+ACT.rvPick=(id,v)=>{ if(!DONE_ST[v]) return; RVK.forEach(k=>{ const e=$('rv-'+k); if(e) RV[k]=e.value; }); RV.done_state=RV.done_state===v?'':v; RV.dirty=true; render(); };
 function rvHas(ws){ const we=addD(ws,6); return allBehs().some(b=>{ const s=kaStart(b); return s&&s<=we; })||allGoals().some(g=>krWeek(g,ws)>0); }
-function rvCard(){ if(!runPs().length) return ''; const ws=dueWeek(),t=td(); if(reviewOf(ws)||!rvHas(ws)) return ''; if(ws===weekStart(t)&&![5,6,0].includes(pd(t).getDay())) return '';   /* tuần đang chạy thì chỉ nhắc từ thứ Sáu */ return '<div class="wi" id="rv-card"><div class="wig">🗓️</div><div class="wib"><div class="wit">Đến lúc rà soát tuần '+wkLabel(ws)+'</div><div class="wid">Nhìn lại nhịp KA, xem nguồn nào đang yếu, chọn điều chỉnh cho tuần tới.</div></div><button class="mb p" data-a="goRv">Rà soát</button></div>'; }
-ACT.goRv=()=>{ if(!RV.dirty) rvLoad(dueWeek()); UI.asub='wk'; swV('analyze'); };
+const rvDeadline=ws=>addD(ws,5);   // thứ Bảy của tuần
+function rvState(){   // tuần cần rà soát và mức nhắc: chưa tới (none), mai là hạn (soon), hôm nay là hạn (today), quá hạn (late), đã xong (done)
+  const t=td(),ws=dueWeek(),dl=rvDeadline(ws); if(reviewOf(ws)) return {ws,st:'done'};
+  if(t<addD(dl,-1)) return {ws,st:'none'}; if(t<dl) return {ws,st:'soon'}; if(t===dl) return {ws,st:'today'}; return {ws,st:'late',n:dB(dl,t)};
+}
+const rvOnTime=r=>{ if(!r||!r.saved_on) return null; const d=dB(rvDeadline(r.date),r.saved_on); return d<=0?0:d; };
+function rvCard(){
+  if(!runPs().length) return ''; const s=rvState(),ws=s.ws; if(s.st==='none'||s.st==='done'||!rvHas(ws)) return '';
+  const dl=rvDeadline(ws),cls=s.st==='late'?'er':s.st==='today'?'wa':'',ic=s.st==='late'?'⏰':'🗓️';
+  const t=s.st==='soon'?'Mai là hạn rà soát tuần '+wkLabel(ws):s.st==='today'?'Hôm nay là hạn rà soát tuần '+wkLabel(ws):'Quá hạn rà soát tuần '+wkLabel(ws)+' · '+s.n+' ngày';
+  const d=s.st==='late'?'Hạn là trước 24:00 thứ Bảy '+fd(dl)+'. Làm ngay để chọn mục tiêu cho tuần này.':'Hạn trước 24:00 thứ Bảy '+fd(dl)+'. 8 câu: cam kết, kết quả, nguyên nhân, làm nhiều hơn, ít đi, dừng, làm mới, mục tiêu tuần sau.';
+  return '<div class="wi '+cls+'" id="rv-card" data-st="'+s.st+'"><div class="wig">'+ic+'</div><div class="wib"><div class="wit">'+t+'</div><div class="wid">'+d+'</div></div><button class="mb p" data-a="goRv">Rà soát</button></div>';
+}
+ACT.goRv=()=>{ if(!RV.dirty) rvLoad(rvState().ws); UI.asub='wk'; swV('analyze'); };
 function rvSwitch(ws){ const go=()=>{ rvLoad(ws); render(); $('main').scrollTop=0; }; if(RV.dirty&&ws!==RV.ws) confirmBox('Bỏ phần đang viết của tuần '+wkLabel(RV.ws)+'?','Phần chưa lưu sẽ mất.',[{l:'Ở lại',c:'bs'},{l:'Bỏ, chuyển tuần',c:'bd',f:go}]); else go(); }
 ACT.rvNav=(id,v)=>{ const cw=weekStart(td()),ws=addD(RV.ws||dueWeek(),v==='-1'?-7:7); if(ws>cw||ws<addD(cw,-7*104)) return; rvSwitch(ws); };
 ACT.rvGo=ws=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(ws)&&ws<=weekStart(td())) rvSwitch(weekStart(ws)); };
 ACT.rvSave=()=>{
   RVK.forEach(k=>{ const e=$('rv-'+k); if(e) RV[k]=e.value; });
   const ws=RV.ws,v=k=>String(RV[k]||'').trim().slice(0,1500); if(!ws) return;
-  if(!v('win')&&!v('stuck')&&!v('plan')) return toast('Viết ít nhất một dòng trước khi lưu','er');
-  const old=reviewOf(ws),snap=!old||ws>=addD(weekStart(td()),-7),sm=weekSum(ws);   // số liệu chụp lại lúc lưu; tuần cũ hơn thì giữ số đã chụp
-  put('logs',Object.assign({id:'rv_'+ws},old||{},{gid:RVG,date:ws,value:0,note:'',win:v('win'),stuck:v('stuck'),plan:v('plan')},snap?{pct:sm.pct===null?'':String(sm.pct),rate:sm.rate===null?'':String(Math.round(sm.rate*100))}:{}));
-  RV.dirty=false; commit(); toast('Đã lưu rà soát tuần '+wkLabel(ws),'ok');
+  const prev=reviewOf(addD(ws,-7)),hasPrev=!!(prev&&(String(prev.next_goal||prev.plan||'').trim()));
+  if(hasPrev&&!DONE_ST[v('done_state')]){ toast('Câu 1: chọn đã làm hết, một phần hay chưa làm','er'); return; }
+  if(!v('next_goal')){ toast('Câu 8: viết mục tiêu tuần tiếp theo','er'); const e=$('rv-next_goal'); if(e) e.focus(); return; }
+  const pct=v('achieve_pct'); if(pct!==''&&!(num(pct)>=0&&num(pct)<=1000)){ toast('Câu 2: phần trăm đạt là một số từ 0','er'); return; }
+  const old=reviewOf(ws),snap=!old||ws>=addD(weekStart(td()),-7),sm=weekSum(ws),rec={gid:RVG,date:ws,value:0,note:''};   // số liệu chụp lại lúc lưu; tuần cũ hơn thì giữ số đã chụp
+  RVK.forEach(k=>{ rec[k]=k==='achieve_pct'?(pct===''?'':String(Math.round(num(pct)))):v(k); });
+  if(!old||!old.saved_on) rec.saved_on=td();
+  put('logs',Object.assign({id:'rv_'+ws},old||{},rec,snap?{pct:sm.pct===null?'':String(sm.pct),rate:sm.rate===null?'':String(Math.round(sm.rate*100))}:{}));
+  RV.dirty=false; commit(); const ot=rvOnTime(reviewOf(ws)); toast('Đã lưu rà soát tuần '+wkLabel(ws)+(ot===0?' · đúng hạn':ot?' · trễ '+ot+' ngày':''),'ok');
 };
 ACT.rvDel=()=>{ const r=reviewOf(RV.ws); if(!r) return; askDel('Xóa bản rà soát tuần '+wkLabel(RV.ws)+'?','',()=>{ del('logs',r.id); RV.dirty=false; commit(); }); };
-
+function rvDueLine(ws,saved){
+  const dl=rvDeadline(ws),t=td(),ot=rvOnTime(saved);
+  const st=saved?(ot===0?'<span class="tok">✓ Đã rà soát đúng hạn</span>':ot?'<span class="twa">Đã rà soát, trễ '+ot+' ngày</span>':'<span class="tok">✓ Đã rà soát</span>'):t>dl?'<span class="ter">Quá hạn '+dB(dl,t)+' ngày</span>':t===dl?'<span class="twa">Hôm nay là hạn</span>':'<span>Còn '+dB(t,dl)+' ngày</span>';
+  return '<div class="ovs" id="rv-due" style="margin:-6px 0 14px;text-align:center">Hạn: trước 24:00 thứ Bảy '+fd(dl)+' · '+st+'</div>';
+}
+function rvAnswers(r){
+  const rows=[]; if(r.done_state||r.done_note) rows.push(['1. Cam kết tuần trước',[DONE_ST[r.done_state]||'',r.done_note].filter(Boolean).join(': ')]);
+  const p=r.achieve_pct===''||r.achieve_pct==null?'':Math.round(num(r.achieve_pct))+'%'; if(p||r.achieve_note) rows.push(['2. Đạt so với kỳ vọng',[p,r.achieve_note].filter(Boolean).join(' · ')]);
+  RVQ.forEach(q=>{ if(String(r[q[0]]||'').trim()) rows.push([q[1].replace(/\?.*$/,'').replace(/^📚 /,''),r[q[0]]]); });
+  [['win','Ghi nhận'],['stuck','Phản hồi'],['plan','Điều chỉnh tuần tới']].forEach(x=>{ if(String(r[x[0]]||'').trim()) rows.push([x[1],r[x[0]]]); });   // bản rà soát kiểu cũ
+  return rows.map(x=>'<div class="rva"><b>'+esc(x[0])+':</b> <span class="pre">'+esc(x[1])+'</span></div>').join('');
+}
 function reviewView(){
   const os=runPs(),t=td();
   if(!os.length) return '<div class="empty"><div class="ei">🗓️</div><h3>'+(actP().length?'Mọi O đang chạy đều đã chốt':'Chưa có O nào đang chạy')+'</h3><p>Rà soát tuần nhìn lại nhịp KA và nguồn ảnh hưởng của các O đang chạy, chưa chốt.</p></div>'+rvHistory();
@@ -1248,7 +1287,7 @@ function reviewView(){
   const box=(n,l,c)=>'<div class="sb3"><div class="sb3n"'+(c?' style="color:var(--'+c+')"':'')+'>'+n+'</div><div class="sb3l">'+l+'</div></div>';
   let h='<div class="wkn"><button class="mb" data-a="rvNav" data-v="-1" title="Tuần trước đó">◀</button><div class="wkt">Tuần '+wkLabel(ws)+'<div class="wks">'+[ws===cw?'tuần này':ws===addD(cw,-7)?'tuần trước':'',saved?'✓ đã rà soát':'chưa rà soát'].filter(Boolean).join(' · ')+'</div></div><button class="mb" data-a="rvNav" data-v="1" title="Tuần sau đó"'+(ws>=cw?' disabled':'')+'>▶</button></div>';
   h+='<div class="strow" style="margin:0 0 14px">'+box(sm.rate===null?'—':Math.round(sm.rate*100)+'%','Nhịp KA'+(sm.due?' · '+sm.done+'/'+sm.due:''),sm.rate===null?'t3':sm.rate>=.8?'ok':sm.rate>=.5?'wa':'er')+box(sm.moved+'/'+sm.krs,'KR có nhích',sm.moved?'p':'t3')+box(sm.blk,'Đang bị chặn',sm.blk?'er':'t1')+'</div>';
-  if(prev&&String(prev.plan||'').trim()) h+='<div class="wi"><div class="wig">📌</div><div class="wib"><div class="wit">Điều chỉnh đã chọn từ tuần trước</div><div class="wid pre">'+esc(prev.plan)+'</div></div></div>';
+  h+=rvDueLine(ws,saved);
   os.forEach(p=>{ const gs=liveGoals(p.id),pp=pPct(p.id),over=p.end_date&&p.end_date<t?dB(p.end_date,t):0;
     h+='<div class="card n" style="padding:16px"><div class="row top"><div class="f1"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div></div><div class="mono tp" style="font-weight:700;flex-shrink:0">'+(pp===null?'—':pp+'%')+'</div></div>';
     if(over) h+='<div class="row" style="gap:10px;margin-top:8px"><div class="f1 ovs" style="margin:0;color:var(--wa)">🏁 Đã hết chu kỳ '+over+' ngày, chưa chốt.</div><button class="mb p" data-a="closeO" data-id="'+esc(p.id)+'">Chốt</button></div>';
@@ -1261,15 +1300,20 @@ function reviewView(){
         if(att){ const hint=coverHint(b); h+='<div class="wka" data-ka="'+esc(b.id)+'">'+coverStrip(b)+'<div class="ovs">'+(low?'Nhịp thấp. ':'')+(hint?esc(hint.charAt(0).toUpperCase()+hint.slice(1))+'. Chạm ô trống để thêm hành động.':'Đã có hành động ở cả 6 nguồn: xem hành động nào chưa chạy.')+'</div></div>'; } });
       if(!kas.length) h+='<div class="ova"><div class="ovs" style="margin:0;color:var(--wa)">Chưa có KA</div></div>'; });
     h+='</div>'; });
-  const ta=(k,l,ph)=>'<div class="fg"><label class="fl" for="rv-'+k+'">'+l+'</label><textarea class="fi" id="rv-'+k+'" rows="3" maxlength="1500" data-i="rv" data-v="'+k+'" placeholder="'+ph+'">'+esc(RV[k])+'</textarea></div>';
-  h+='<div class="card" id="rv-form"><div class="sl">Ghi lại tuần '+wkLabel(ws)+'</div>'+ta('win','🏅 Ghi nhận: điều gì đã tiến lên, nhờ đâu?','VD: Giữ đủ 6 ngày viết nhật ký nhờ nhóm rèn chung nhắc mỗi tối')+ta('stuck','🔍 Phản hồi: điều gì đang vướng, nguồn nào còn thiếu?','VD: Mời doanh nghiệp chậm vì chưa có danh sách để mời (nguồn 6)')+ta('plan','➡️ Tuần tới: điều chỉnh gì?','VD: Thêm hành động nguồn 3: nhờ người quen giới thiệu 2 doanh nghiệp')+'<div style="display:flex;gap:10px"><button class="bp" style="flex:1" data-a="rvSave">'+(saved?'LƯU THAY ĐỔI':'LƯU RÀ SOÁT TUẦN')+'</button>'+(saved?'<button class="mb er" data-a="rvDel">🗑 Xóa</button>':'')+'</div></div>';
+  const pv=prev||{},commit0=String(pv.next_goal||pv.plan||'').trim(),newDo=String(pv.start_doing||'').trim();
+  const ta=(k,l,ph,rows)=>'<div class="fg"><label class="fl" for="rv-'+k+'">'+l+'</label><textarea class="fi" id="rv-'+k+'" rows="'+(rows||2)+'" maxlength="1500" data-i="rv" data-v="'+k+'" placeholder="'+esc(ph||'')+'">'+esc(RV[k])+'</textarea></div>';
+  h+='<div class="card" id="rv-form"><div class="sl">Rà soát tuần '+wkLabel(ws)+'</div>';
+  h+='<div class="fg"><label class="fl">1. Đã làm hết những điều cam kết tuần trước chưa?</label>'+(commit0||newDo?'<div class="ni rvc">'+(commit0?'<div><b>Mục tiêu đã đặt:</b> <span class="pre">'+esc(commit0)+'</span></div>':'')+(newDo?'<div><b>Việc mới đã chọn:</b> <span class="pre">'+esc(newDo)+'</span></div>':'')+'</div>':'<div class="hint" style="margin:0 0 8px">Tuần trước chưa có rà soát nên chưa có cam kết để đối chiếu.</div>')+'<div class="rvp">'+Object.keys(DONE_ST).map(k=>'<button class="qc'+(RV.done_state===k?' on':'')+'" data-a="rvPick" data-v="'+k+'">'+DONE_ST[k]+'</button>').join('')+'</div><textarea class="fi" id="rv-done_note" rows="2" maxlength="1500" data-i="rv" data-v="done_note" placeholder="Việc nào xong, việc nào chưa, vì sao">'+esc(RV.done_note)+'</textarea></div>';
+  h+='<div class="fg"><label class="fl" for="rv-achieve_pct">2. Thực tế đạt được so với kỳ vọng là bao nhiêu?</label><div class="ovs" style="margin:0 0 6px">Số liệu app ghi được: nhịp KA '+(sm.rate===null?'—':Math.round(sm.rate*100)+'% ('+sm.done+'/'+sm.due+')')+' · '+sm.moved+'/'+sm.krs+' KR có nhích · O đạt '+(sm.pct===null?'—':sm.pct+'%')+'</div><div class="lr" style="margin:0 0 6px"><input class="fi" id="rv-achieve_pct" type="number" inputmode="numeric" min="0" step="1" style="max-width:120px" data-i="rv" data-v="achieve_pct" value="'+esc(RV.achieve_pct)+'" placeholder="%"><span class="ovs" style="align-self:center;margin:0">% so với kỳ vọng</span></div><textarea class="fi" id="rv-achieve_note" rows="2" maxlength="1500" data-i="rv" data-v="achieve_note" placeholder="VD: mời được 2/3 doanh nghiệp; 4 giờ huấn luyện so với 5 giờ dự kiến">'+esc(RV.achieve_note)+'</textarea></div>';
+  RVQ.forEach(q=>{ h+=ta(q[0],q[1],q[2],q[0]==='next_goal'?3:2); });
+  h+='<div style="display:flex;gap:10px"><button class="bp" style="flex:1" data-a="rvSave">'+(saved?'LƯU THAY ĐỔI':'LƯU RÀ SOÁT TUẦN')+'</button>'+(saved?'<button class="mb er" data-a="rvDel">🗑 Xóa</button>':'')+'</div></div>';
   return h+rvHistory();
 }
 function rvHistory(){
   const rs=reviews(); if(!rs.length) return '<div class="hint" style="margin-top:6px">Chưa có tuần nào được rà soát.</div>';
   const all=OPEN.has('rvall'),sh=all?rs:rs.slice(0,8),pc=v=>v===''||v==null?null:Math.round(num(v));
-  return '<div class="sl" style="margin:24px 0 12px">Các tuần đã rà soát ('+rs.length+')</div>'+sh.map(r=>{ const txt=RVK.map(k=>String(r[k]||'').trim()).filter(Boolean).join(' · '),a=pc(r.pct),b=pc(r.rate);
-    return '<div class="ni rvh" data-a="rvGo" data-id="'+esc(r.date)+'" style="cursor:pointer'+(r.date===RV.ws?';border-color:var(--p)':'')+'"><div class="row" style="gap:8px"><div class="f1" style="font-weight:bold;font-size:14px">Tuần '+wkLabel(r.date)+'</div><div class="ovs" style="margin:0;flex-shrink:0">'+[a===null?'':'O đạt '+a+'%',b===null?'':'nhịp '+b+'%'].filter(Boolean).join(' · ')+'</div></div><div class="clip2">'+esc(txt)+'</div></div>'; }).join('')+(rs.length>8?'<button class="lnk" data-a="more" data-id="rvall" style="margin-top:4px">'+(all?'Thu gọn':'Xem tất cả '+rs.length+' tuần')+'</button>':'');
+  return '<div class="sl" style="margin:24px 0 12px">📚 Kho bài học các tuần ('+rs.length+')</div>'+sh.map(r=>{ const ot=rvOnTime(r),a=pc(r.pct),b=pc(r.rate),k=pc(r.achieve_pct),nid='rvh-'+r.date,top=String(r.lesson||r.next_goal||r.plan||r.win||'').trim();
+    return '<div class="ni rvh" data-wk="'+esc(r.date)+'" style="'+(r.date===RV.ws?'border-color:var(--p)':'')+'"><div class="row top" style="gap:8px"><div class="f1"><div style="font-weight:bold;font-size:14px">Tuần '+wkLabel(r.date)+'</div><div class="ovs" style="margin:2px 0 0">'+[ot===0?'<span class="tok">đúng hạn</span>':ot?'<span class="twa">trễ '+ot+' ngày</span>':'',k===null?'':'đạt '+k+'% kỳ vọng',a===null?'':'O đạt '+a+'%',b===null?'':'nhịp '+b+'%'].filter(Boolean).join(' · ')+'</div>'+(top?'<div class="clip2">'+(r.lesson?'📚 ':'')+esc(top)+'</div>':'')+'</div>'+togBtn(nid)+'</div>'+nest(nid,rvAnswers(r)+'<button class="mb" style="margin-top:10px" data-a="rvGo" data-id="'+esc(r.date)+'">✏️ Mở để sửa</button>')+'</div>'; }).join('')+(rs.length>8?'<button class="lnk" data-a="more" data-id="rvall" style="margin-top:4px">'+(all?'Thu gọn':'Xem tất cả '+rs.length+' tuần')+'</button>':'');
 }
 
 /* ---------------- chốt chu kỳ: tự chấm điểm, câu chuyện sau con số, bài học ---------------- */
@@ -1300,7 +1344,7 @@ function closeBody(p){
     h+='<div class="ni"><div style="font-weight:600;font-size:14.5px">🎯 '+esc(g.name)+'</div><div class="ovs">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · tự tính '+fmt(a)+(g.weight>0?' · trọng số '+fmt(g.weight):'')+'</div><div class="clr"><input class="fi" id="cl-s-'+id+'" type="number" inputmode="decimal" min="0" max="1" step="0.1" value="'+(s===null?a:s)+'" data-i="clS" aria-label="Điểm tự chấm"><input class="fi" id="cl-n-'+id+'" maxlength="300" value="'+esc(g.close_note)+'" placeholder="Vì sao chấm vậy?" aria-label="Ghi chú"></div></div>'; });
   h+='<div class="sl" style="font-size:12px;margin:18px 0 0">6 nguồn trong chu kỳ này</div><div class="cvs">'+SRC.map(s=>{ const x=as.filter(a=>a.source===s.id),dn=x.filter(a=>a.status==='done').length,bk=x.filter(a=>a.status==='blocked').length; return '<div class="cv '+(x.length?(bk?'b':'f'):'')+'" style="cursor:default" title="'+esc(s.s)+'"><em>'+s.e+'</em>'+(x.length?dn+'/'+x.length:'trống')+'</div>'; }).join('')+'</div><div class="hint" style="margin:6px 0 16px">Số hành động đã xong trên tổng số ở từng nguồn.</div>';
   const rs=reviews().filter(r=>(!p.start_date||addD(r.date,6)>=p.start_date)&&(!p.end_date||r.date<=p.end_date)).reverse();
-  if(rs.length) h+='<details class="dt"><summary>Xem lại '+rs.length+' bản rà soát tuần trong chu kỳ</summary>'+rs.map(r=>'<div class="ni" style="margin-top:8px"><div style="font-weight:bold;font-size:13px">Tuần '+wkLabel(r.date)+'</div>'+[['🏅',r.win],['🔍',r.stuck],['➡️',r.plan]].filter(x=>String(x[1]||'').trim()).map(x=>'<div class="pre" style="font-size:13.5px;color:var(--t2);margin-top:4px">'+x[0]+' '+esc(x[1])+'</div>').join('')+'</div>').join('')+'</details>';
+  if(rs.length) h+='<details class="dt"><summary>Xem lại '+rs.length+' bản rà soát tuần trong chu kỳ</summary>'+rs.map(r=>'<div class="ni" style="margin-top:8px"><div style="font-weight:bold;font-size:13px">Tuần '+wkLabel(r.date)+'</div>'+rvAnswers(r)+'</div>').join('')+'</details>';
   const ta=(id,l,v)=>'<div class="fg"><label class="fl" for="'+id+'">'+l+'</label><textarea class="fi" id="'+id+'" rows="3" maxlength="2000">'+esc(v)+'</textarea></div>';
   return h+ta('cl-story','Câu chuyện sau con số: vì sao đạt, vì sao chưa?',p.story)+ta('cl-src','6 nguồn: nguồn nào đã kéo kết quả, nguồn nào còn thiếu?',p.src_note)+ta('cl-les','Bài học mang sang chu kỳ sau: giữ gì, bỏ gì, làm khác gì?',p.lessons);
 }
@@ -1442,7 +1486,7 @@ const guessDelim=t=>{ const l=String(t||'').split(/\r?\n/).slice(0,5).join('\n')
 
 /* ---------- nhận cột theo tiêu đề ---------- */
 const nrm=s=>String(s==null?'':s).toLowerCase().replace(/đ/g,'d').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-const HDR=[['ma ka','kacode'],['ma','code'],['noi dung','name'],['muc tieu va ket qua then chot','name'],['hanh dong','name'],['ten','name'],['thoi diem do','when'],['thoi gian','time'],['y nghia','why'],['chi so','metric'],['cach do','measure'],['thanh cong','success'],['dich','success'],['don vi','unit'],['nguoi do','confirmer'],['nguoi xac nhan','confirmer'],['nguoi lien quan','assignee'],['nguoi','assignee'],['nguon luc','resource'],['nguon anh huong','source'],['nguon 1 6','source'],['nguon','src?'],['han','deadline'],['bat dau','start'],['ket thuc','end'],['trang thai','status'],['ghi chu','note'],['kieu do','kind'],['nhip','rhythm'],['loai','otype'],['vai tro','role'],['chu ky','cycle']];
+const HDR=[['ma ka','kacode'],['hanh vi then chot','kacode'],['ma','code'],['noi dung','name'],['muc tieu va ket qua then chot','name'],['hanh dong','name'],['ten nguon','source'],['ten','name'],['thoi diem do','when'],['thoi diem','at'],['tan suat','freq'],['gop','group'],['thoi gian','time'],['y nghia','why'],['chi so','metric'],['cach do','measure'],['thanh cong','success'],['dich','success'],['don vi','unit'],['nguoi do','confirmer'],['nguoi xac nhan','confirmer'],['nguoi lien quan','assignee'],['nguoi','assignee'],['nguon luc','resource'],['nguon anh huong','source'],['nguon 1 6','source'],['nguon','src?'],['han','deadline'],['bat dau','start'],['ket thuc','end'],['trang thai','status'],['ghi chu','note'],['kieu do','kind'],['nhip','rhythm'],['loai','otype'],['vai tro','role'],['chu ky','cycle']];
 const hdrField=h=>{ h=nrm(h); if(!h) return ''; const x=HDR.find(k=>h===k[0]||h.startsWith(k[0]+' ')); return x?x[1]:''; };
 const cellv=v=>{ const s=String(v==null?'':v).replace(/ /g,' ').trim(); return /^[—–\-]+$/.test(s)?'':s; };
 function codeLv(c){ c=String(c||'').replace(/\s+/g,'').toUpperCase().replace(/^HĐ/,'HD'); let m;
@@ -1495,8 +1539,17 @@ function guessRhythm(name){   // trả {rhythm,quota,slots,t,m}
   if(/mỗi lần|^khi /.test(s)) return {rhythm:'event',quota:1,slots:'',t:'warn',m:'Nhịp đoán là theo sự kiện, từ câu «'+name+'»'};
   return {rhythm:'daily',quota:1,slots:'',t:'warn',m:'Câu KA không nói rõ nhịp: tạm để mỗi ngày'};
 }
-function parseSource(v){ const s=nrm(v); if(!s) return 0; let m=/^(?:nguon )?([1-6])$/.exec(s); if(m) return +m[1];
+function parseSource(v){ const s=nrm(v); if(!s) return 0; let m=/^(?:nguon |n ?)?([1-6])(?:\b|$)/.exec(s); if(m) return +m[1];
   const x=SRC.find(r=>nrm(r.s)===s||nrm(r.n)===s||s.startsWith(nrm(r.s))); return x?x.id:0; }
+const kaCodeIn=v=>{ const m=/^\s*(KA\s*\d+\.\d+\.\d+)/i.exec(String(v||'')); return m?codeLv(m[1]):null; };
+const diagOf=v=>{ const s=String(v||''); return /✓|\bcó\b/i.test(s)?'đã có, việc giữ':/✗|chưa/i.test(s)?'chưa có, việc mới':''; };
+function dueFromTiming(at,freq,y){   // việc làm một lần: lấy hạn từ cột Thời điểm ("hạn 31/10", "Tuần 13–19/10")
+  if(!/m[oộ]t l[aầ]n/i.test(String(freq||''))) return ''; const s=String(at||''); let m;
+  if((m=/h[aạ]n\s*(\d{1,2}\/\d{1,2}(?:\/\d{4})?)/i.exec(s))) return oneDate(m[1],y);
+  if((m=/(\d{1,2}(?:\/\d{1,2})?)\s*[–—-]\s*(\d{1,2}\/\d{1,2}(?:\/\d{4})?)/.exec(s))) return oneDate(m[2],y);
+  if((m=/(\d{1,2}\/\d{1,2}(?:\/\d{4})?)/.exec(s))) return oneDate(m[1],y);
+  return '';
+}
 const parseStatus=v=>{ const s=nrm(v); return /xong|hoan thanh|done/.test(s)?'done':/chan|block/.test(s)?'blocked':'pending'; };
 
 /* ---------- dựng danh sách mục cần nhập ---------- */
@@ -1506,23 +1559,33 @@ function impBuild(sheets,label){
   const raw={},acts=[],notes=[],years={};
   sheets.forEach(sh=>sh.rows.forEach(r=>r.forEach(c=>{ const m=/(20\d\d)/.exec(String(c||'')); if(m&&!isSerial(c)) years[m[1]]=(years[m[1]]||0)+1; })));
   const yHint=+(Object.keys(years).sort((a,b)=>years[b]-years[a])[0]||pd(td()).getFullYear());
-  let noCode=0;
+  let noCode=0; const idle=[];
   sheets.forEach(sh=>{
-    const hi=sh.rows.findIndex(r=>r.some(c=>{ const f=hdrField(c); return f==='code'||f==='kacode'; }));
+    let hi=sh.rows.findIndex(r=>r.some(c=>hdrField(c)==='code'));   /* dòng tiêu đề: có cột Mã; nếu không thì có cột KA cùng cột hành động hoặc nguồn */
+    if(hi<0) hi=sh.rows.findIndex(r=>{ const f=r.map(hdrField); return f.includes('kacode')&&(f.includes('name')||f.includes('source')); });
     let map;
-    if(hi>=0){ map=sh.rows[hi].map(hdrField); const isAct=map.includes('kacode'); map=map.map(f=>f==='src?'?(isAct?'source':''):f); }
-    else { const ci=[0,1,2,3,4,5].find(i=>sh.rows.filter(r=>codeLv(r[i])).length>0); if(ci===undefined) return; map=[]; map[ci]='code'; map[ci+1]='name'; notes.push('Bảng «'+sh.name+'» không có dòng tiêu đề: chỉ đọc được mã và tên.'); }
-    const pos={};   // dòng cha gần nhất theo vị trí trong cùng tab
+    let isAct=false;
+    if(hi>=0){ map=sh.rows[hi].map(hdrField); isAct=map.includes('kacode')&&(map.includes('name')||map.includes('source')||map.includes('src?')); const hasSrc=map.includes('source'); map=map.map(f=>f==='src?'?(isAct&&!hasSrc?'source':''):f); }
+    else { const ci=[0,1,2,3,4,5].find(i=>sh.rows.filter(r=>codeLv(r[i])).length>0); if(ci===undefined){ idle.push(sh.name); return; } map=[]; map[ci]='code'; map[ci+1]='name'; notes.push('Bảng «'+sh.name+'» không có dòng tiêu đề: chỉ đọc được mã và tên.'); }
+    const pos={}; let lastKa='',used=0,bad=0;   // dòng cha gần nhất theo vị trí trong cùng tab; mã KA gần nhất (ô gộp)
     for(let r=hi+1;r<sh.rows.length;r++){
       const row=sh.rows[r]||[],o={}; map.forEach((f,i)=>{ if(f){ const v=cellv(row[i]); if(v!==''&&o[f]===undefined) o[f]=v; } });
       const c=codeLv(o.code),where=sh.name+' · dòng '+(r+1);
-      if(o.kacode||(c&&c.lv==='HD')){ if(o.name||o.source) acts.push({o,c,where,posKA:pos.KA}); continue; }
-      if(!c){ if(o.code&&o.name) noCode++; continue; }
+      if(c&&c.lv!=='HD'){ /* dòng O, KR, KA: xử lý ở dưới */ }
+      else if(isAct||(c&&c.lv==='HD')){
+        if(isAct){ if(o.kacode&&kaCodeIn(o.kacode)) lastKa=o.kacode; else if(!o.kacode&&lastKa) o.kacode=lastKa; }
+        if(o.name&&(kaCodeIn(o.kacode)||(c&&c.lv==='HD')||o.kacode)){ acts.push({o,c,where}); used++; }
+        continue;
+      }
+      if(!c){ if(o.code&&o.name) bad++; continue; }
+      used++;
       const sc=Object.keys(o).length,rec={o,sc,where,sheet:sh.name,posParent:c.lv==='KR'?pos.O:c.lv==='KA'?pos.KR:null};
       pos[c.lv]=c.code;
       if(!raw[c.code]) raw[c.code]={c,recs:[]}; raw[c.code].recs.push(rec);
     }
+    if(!used) idle.push(sh.name); else noCode+=bad;
   });
+  if(idle.length) notes.push('Không nhập gì từ '+(idle.length>1?'các tab ':'tab ')+idle.map(n=>'«'+n+'»').join(', ')+': không có dòng mang mã O, KR, KA hay bảng hành động theo KA (tài liệu tham khảo, lịch, bảng tổng hợp).');
   if(noCode) notes.push(noCode+' dòng có ô Mã không đúng mẫu O1, KR1.1, KA1.1.1, HĐ1.1.1.1 nên bỏ qua.');
   const items=[],idx={},flag=(it,k,t,m)=>{ it.fl[k]={t,m}; },mk=(lv,code,where)=>({lv,code,where,f:{},src:{},fl:{},pi:null,pdb:'',ex:null});
   const pick=code=>{ const x=raw[code],recs=x.recs.slice().sort((a,b)=>b.sc-a.sc),o=Object.assign({},recs[0].o); recs.slice(1).forEach(r=>{ for(const k in r.o) if(o[k]===undefined) o[k]=r.o[k]; }); return {o,best:recs[0],all:recs}; };
@@ -1564,15 +1627,15 @@ function impBuild(sheets,label){
     const ms=String(o.time||'').split(/\s*·\s*/).filter(Boolean); if(ms.length>=2&&!dateRange(o.time,yHint)) ['m1','m2','m3'].forEach((k,i)=>set(it,k,ms[i]));
   });
   acts.forEach(a=>{ const o=a.o,it=mk('HD',a.c?a.c.code:'',a.where); items.push(it);
-    const kc=o.kacode?codeLv(o.kacode):a.c?codeLv('KA'+a.c.n.slice(0,3).join('.')):null;
+    const kc=o.kacode?(codeLv(o.kacode)||kaCodeIn(o.kacode)):a.c?codeLv('KA'+a.c.n.slice(0,3).join('.')):null;
     if(!kc||kc.lv!=='KA') flag(it,'_p','miss','Ô Mã KA «'+(o.kacode||'')+'» không đúng mẫu KA1.1.1'); else { it.kac=kc.code; parentOf(it,kc.code,null,'KA'); }
     set(it,'name',o.name); const sv=parseSource(o.source); if(sv) set(it,'source',sv); else flag(it,'source','miss',o.source?'Không hiểu nguồn «'+o.source+'»: chọn 1 đến 6':'Chưa có nguồn ảnh hưởng (1 đến 6)');
-    set(it,'assignee',o.assignee); set(it,'note',o.note); if(o.status) set(it,'status',parseStatus(o.status));
+    const dg=diagOf(o.source); set(it,'assignee',o.assignee); set(it,'note',[o.note,o.freq,o.at,o.group?'Gộp '+o.group:'',dg?'Nguồn này: '+dg:''].filter(Boolean).join(' · ')); if(o.status) set(it,'status',parseStatus(o.status));
+    if(!o.deadline&&o.at){ const d=dueFromTiming(o.at,o.freq,yHint); if(d){ set(it,'deadline',d,'guess'); flag(it,'deadline','warn','Hạn đọc từ cột Thời điểm «'+o.at+'»'); } }
     if(o.deadline){ const d=oneDate(o.deadline,yHint); if(d) set(it,'deadline',d); else flag(it,'deadline','warn','Không đọc được hạn «'+o.deadline+'»'); }
   });
   items.forEach(it=>{ impMatch(it,items); impCheck(it); });
   if(items.some(it=>it.lv==='KR')) notes.push('File không có cột kiểu đo: KR mặc định là Cộng dồn, đổi được ở từng dòng.');
-  if(sheets.some(sh=>/ngu[oồ]n/i.test(sh.name)&&!sh.rows.some(r=>r.some(c=>hdrField(c)==='kacode')))) notes.push('Tab «Nguồn» là tài liệu tham khảo, không nhập.');
   if(!items.some(it=>it.lv==='HD')) notes.push('Chưa có hành động theo 6 nguồn. Thêm tab «Hành động» (cột Mã KA, Hành động, Nguồn 1–6, Người liên quan, Hạn) rồi nhập lại, hoặc nhập tay sau.');
   return {label,items,notes};
 }
