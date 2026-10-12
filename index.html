@@ -415,6 +415,22 @@ textarea.fi { resize: vertical; line-height: 1.45; }
 .cc.pt { background: var(--wag); color: var(--wa); font-size: 10px; }
 .cc.wait { background: transparent; border: 2px dashed var(--b2); }
 .cc.rs, .cc.nil { background: transparent; color: var(--t3); }
+/* nhập từ Excel */
+.imi { border: 1px solid var(--b1); border-radius: var(--rs); padding: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.18); }
+.imi.lvKR { margin-left: 10px; } .imi.lvKA { margin-left: 20px; } .imi.lvHD { margin-left: 30px; }
+.imi.blk { border-color: rgba(248,81,73,0.55); }
+.imi .fi { padding: 8px 10px; font-size: 14px; }
+.imh { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.imc { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--p); font-size: 13px; }
+.ims { font-family: 'Space Mono', monospace; font-size: 10.5px; font-weight: 700; border-radius: 10px; padding: 1px 8px; border: 1px solid; }
+.ims.n { color: var(--ok); border-color: var(--ok); } .ims.u { color: #79b8ff; border-color: #79b8ff; } .ims.x { color: var(--er); border-color: var(--er); }
+.imr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.imr.r3 { grid-template-columns: 0.8fr 1fr 1.2fr; }
+.fi.imx { border-color: var(--er); box-shadow: 0 0 0 1px var(--er) inset; }
+.fi.imw { border-color: var(--wa); box-shadow: 0 0 0 1px var(--wa) inset; }
+.imn { font-size: 13px; line-height: 1.45; margin-top: 6px; }
+.imnotes { margin: 8px 0 0 18px; font-size: 13px; color: var(--t2); }
+.imlist { font-size: 13.5px; line-height: 1.55; color: var(--t2); }
 </style>
 </head>
 <body>
@@ -463,6 +479,7 @@ textarea.fi { resize: vertical; line-height: 1.45; }
 <div id="cfm"><div id="cfmb"><div id="cfmm"></div><div class="cfmbs" id="cfmbs"></div></div></div>
 <div id="toasts"></div>
 <input type="file" id="restore-file" accept=".json,application/json" style="display:none">
+<input type="file" id="xlsx-file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" style="display:none">
 </div>
 
 <script>
@@ -486,7 +503,7 @@ const TYPES=['projects','goals','items','logs','behaviors','checkins','actions']
 const RVG='_tuan';                    // bản rà soát tuần được lưu chung trong bảng logs với gid này, để kho dữ liệu không phải đổi gì
 const NUMF={goals:['target','weight'],items:['ord'],logs:['value'],behaviors:['quota'],actions:['source']};
 const BOOLF={items:['done'],goals:['archived'],behaviors:['habit','archived']};
-const DATEF={projects:['start_date','end_date','created','archived_at','closed_at'],goals:['start_date','deadline','archived_at'],behaviors:['archived_at','created'],items:['date'],logs:['date'],checkins:['date'],actions:['deadline']};
+const DATEF={projects:['start_date','end_date','created','archived_at','closed_at'],goals:['start_date','deadline','archived_at'],behaviors:['archived_at','created','start_date'],items:['date'],logs:['date'],checkins:['date'],actions:['deadline']};
 
 /* ---------------- tiện ích ---------------- */
 const $=id=>document.getElementById(id);
@@ -696,14 +713,14 @@ function buDay(b){   // ngày cần làm gần nhất trước hôm nay (bỏ qu
   return s&&s<=d&&!isRest(b,d)&&!dayDone(b,d)?d:'';
 }
 const missedYesterday=b=>!!buDay(b);
-function dueToday(b){ const t=td(); if(b.habit) return false; if(b.rhythm==='event') return false; if(b.rhythm==='weekly') return weekCount(b,t)<b.quota; return !isRest(b,t)&&!dayDone(b,t); }
+function dueToday(b){ const t=td(); if(b.habit||kaLater(b)) return false; if(b.rhythm==='event') return false; if(b.rhythm==='weekly') return weekCount(b,t)<b.quota; return !isRest(b,t)&&!dayDone(b,t); }
 function rate7(b){   // tỷ lệ giữ nhịp 7 ngày vừa qua (không tính hôm nay)
-  const t=td(),f=firstDate(b); if(b.rhythm==='event'||!f) return null;         // chỉ tính từ lần ghi nhận đầu tiên, KA mới bắt đầu không bị coi là tụt nhịp
+  const t=td(),f=kaStart(b); if(b.rhythm==='event'||!f||!firstDate(b)) return null;   // tính từ ngày bắt đầu của KA, như lịch
   if(b.rhythm==='weekly'){ const w=addD(weekStart(t),-7); return f>addD(w,6)?null:Math.min(1,weekCount(b,w)/b.quota); }
   let due=0,done=0; for(let i=1;i<=7;i++){ const d=addD(t,-i); if(d<f||isRest(b,d)) continue; due++; if(dayDone(b,d)) done++; } return due?done/due:null;
 }
-function kaAdh(b){   // tỷ lệ giữ nhịp từ lần ghi nhận đầu tiên đến nay; ngày hoặc tuần đang dở không bị tính là thiếu
-  const f=firstDate(b),t=td(); if(!f||b.rhythm==='event') return null;
+function kaAdh(b){   // tỷ lệ giữ nhịp từ ngày bắt đầu của KA đến nay, như lịch; ngày hoặc tuần đang dở không bị tính là thiếu
+  const f=kaStart(b),t=td(); if(!firstDate(b)||!f||b.rhythm==='event') return null;
   if(b.rhythm==='weekly'){ let w=weekStart(f),done=0,due=0; const cw=weekStart(t); while(w<cw){ done+=Math.min(b.quota,weekCount(b,w)); due+=b.quota; w=addD(w,7); } const c=Math.min(b.quota,weekCount(b,cw)); done+=c; due+=c; return due?done/due:null; }
   let d=f,done=0,due=0; while(d<=t){ if(dayDone(b,d)){ done++; due++; } else if(d<t&&!isRest(b,d)) due++; d=addD(d,1); } return due?done/due:null;
 }
@@ -807,7 +824,11 @@ const reviews=()=>DB.logs.filter(l=>l.gid===RVG&&/^\d{4}-\d{2}-\d{2}$/.test(l.da
 const reviewOf=ws=>DB.logs.find(l=>l.gid===RVG&&l.date===ws);
 const wkLabel=ws=>fd(ws)+' – '+fd(addD(ws,6));
 function dueWeek(){ const t=td(),cw=weekStart(t),dow=pd(t).getDay(); if(dow===5||dow===6||dow===0) return cw; const pw=addD(cw,-7); return reviewOf(pw)?cw:pw; }   // thứ Sáu đến Chủ nhật: tuần này; đầu tuần: tuần trước nếu chưa rà soát
-function kaStart(b){ const f=firstDate(b),c=b.created||''; return c&&f?(c<f?c:f):(c||f); }
+/* Ngày bắt đầu của KA: một mốc duy nhất cho mọi phép đếm (lịch, giữ nhịp %, rà soát tuần, tích bù, cảnh báo).
+   = ngày bắt đầu anh đặt cho KA, nếu chưa đặt thì ngày tạo KA; nếu đã có lần tích sớm hơn thì lấy lần tích đó. */
+function kaStart(b){ const f=firstDate(b),c=b.start_date||b.created||''; return c&&f?(c<f?c:f):(c||f); }
+const kaStartWhy=b=>{ const f=firstDate(b),s=kaStart(b); return !s?'':s===f&&!(b.start_date===s||b.created===s)?'lần tích đầu tiên':b.start_date?'ngày bắt đầu đã đặt':'ngày tạo KA'; };
+const kaLater=b=>{ const s=kaStart(b); return !!s&&s>td(); };   // KA chưa tới ngày bắt đầu
 function kaWeek(b,ws){   // việc làm KA trong một tuần; due=null với KA theo sự kiện; hôm nay chưa ghi thì chưa tính là thiếu
   const we=addD(ws,6),t=td(),last=we<t?we:t,s=kaStart(b);
   if(b.rhythm==='event') return {done:DB.checkins.filter(c=>c.bid===b.id&&c.date>=ws&&c.date<=we).length,due:null};
@@ -861,7 +882,7 @@ function afterModal(){ if(renderPending&&!isBusy()){ renderPending=false; render
 function oMod(title,body,save,delf,saveLabel,delLabel){
   $('mt').textContent=title; $('mb').innerHTML=body;
   $('mbdel').style.display=delf?'block':'none'; $('mbdel').textContent=delLabel||'Xóa'; $('mbok').style.display=save?'block':'none'; $('mbok').textContent=saveLabel||'LƯU LẠI'; $('mbcan').textContent=save?'Hủy':'Đóng';
-  $('mo').classList.add('on'); MCB=save||null; MDEL=delf||null;
+  $('mo').classList.add('on'); $('mb').scrollTop=0; MCB=save||null; MDEL=delf||null;
   if(window.innerWidth>700) setTimeout(()=>{ const f=document.querySelector('#mb input:not([type=hidden]):not([type=checkbox]):not([type=date]),#mb textarea'); if(f) f.focus(); },150);
 }
 function cMod(){ $('mo').classList.remove('on'); MCB=null; MDEL=null; BF=null; afterModal(); }
@@ -885,7 +906,7 @@ ACT.more=id=>{ if(OPEN.has(id))OPEN.delete(id); else OPEN.add(id); render(); };
 const stat=(n,l)=>'<div class="thi"><div class="n tp">'+n+'</div><div class="l">'+l+'</div></div>';
 const oBar=(p,extra)=>'<div style="padding:10px 14px;background:var(--c2);border-left:4px solid var(--p);border-radius:var(--rs);margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><div style="font-weight:bold;color:var(--p);overflow:hidden;text-overflow:ellipsis">📁 '+esc(p.name)+'</div><div style="font-size:12px;color:var(--t3)">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div>'+(extra||'')+'</div>';
 function noSel(ic){
-  if(!actP().length) return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa có O nào</h3><p>O là mục tiêu của một vai trò trong chu kỳ. Tạo O đầu tiên để bắt đầu.</p><button class="abtn" data-a="newP">＋ TẠO O ĐẦU TIÊN</button></div>';
+  if(!actP().length) return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa có O nào</h3><p>O là mục tiêu của một vai trò trong chu kỳ. Tạo O đầu tiên để bắt đầu.</p><button class="abtn" data-a="newP">＋ TẠO O ĐẦU TIÊN</button><button class="lnk" data-a="imp" style="display:block;margin:14px auto 0">📥 hoặc nhập từ file Excel</button></div>';
   return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa chọn O</h3><p>Chọn O muốn xem.</p><button class="abtn" data-a="oProj">CHỌN O</button></div>';
 }
 function wcard(w){ const btn=w.pid?'<button class="mb p" data-a="closeO" data-id="'+esc(w.pid)+'">Chốt</button>':w.aid?'<button class="mb" data-a="eAct" data-id="'+esc(w.aid)+'">Mở</button>':w.gid?'<button class="mb" data-a="goG" data-id="'+esc(w.gid)+'">Xem</button>':w.bid?'<button class="mb" data-a="goB" data-id="'+esc(w.bid)+'">Xem</button>':''; return '<div class="wi '+w.lv+'"><div class="wig">'+w.ic+'</div><div class="wib"><div class="wit">'+esc(w.t)+'</div><div class="wid">'+esc(w.d)+'</div></div>'+btn+'</div>'; }
@@ -942,7 +963,7 @@ ACT.impLegacy=()=>{ const d=legacyData(); if(!d) return toast('Không còn dữ 
 VIEWS.today=function(){
   const el=$('c-today'); if(!UI.pids.length){ el.innerHTML=noSel('📋')+legacyCard(); return; }
   const gs=selGoals(),bsAll=selBehs(),bs=bsAll.filter(b=>!b.habit),as=selActs(),t=td(),pct=allPct(),ov=overall(),ws=warns(),multi=UI.pids.length>1;
-  const sched=bs.filter(b=>b.rhythm!=='event'), inPlay=sched.filter(b=>b.rhythm==='weekly'||!isRest(b,t)), doneN=inPlay.filter(b=>!dueToday(b)).length;
+  const sched=bs.filter(b=>b.rhythm!=='event'&&!kaLater(b)), inPlay=sched.filter(b=>b.rhythm==='weekly'||!isRest(b,t)), doneN=inPlay.filter(b=>!dueToday(b)).length;
   const tod=new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
   let h='<div class="th"><div class="th-d">'+esc(tod)+'</div><div class="th-s">'+(pct===null?'—':pct+'%')+'</div><div class="ts" style="margin-top:2px;color:var(--'+(ov.c==='nd'?'t3':ov.c)+')">'+ov.l+'</div>'+(pct!==null?'<div class="pb"><div class="pf '+(ov.c==='nd'?'p':ov.c)+'" style="width:'+pct+'%"></div></div>':'')+'<div class="ths">'+stat(doneN+'/'+inPlay.length,'KA đến nhịp')+stat(as.filter(a=>a.status==='blocked').length,'Bị chặn')+stat(gs.length,'KR')+stat(ws.filter(w=>w.lv==='er').length,'Cần xử lý')+'</div></div>';
   if(!gs.length) h+='<div class="wi wa"><div class="wig">🎯</div><div class="wib"><div class="wit">Bước 1: đặt KR</div><div class="wid">Mỗi O cần vài kết quả then chốt đo được.</div></div><button class="mb p" data-a="newG">＋ KR</button></div>';
@@ -989,7 +1010,7 @@ function gCard(g,p){
   const gp=gPct(g),cur=gCur(g),tg=gTarget(g),tp=tPct(g),st=gSt(g),dl=dL(g),id=esc(g.id),nid='gd-'+g.id,sb=(l,v,s)=>'<div class="sb2"'+(s||'')+'><div class="sbl">'+l+'</div><div class="sbv">'+v+'</div></div>';
   let h='<div class="card '+(st.t==='nd'||st.t==='on'?'n':st.t)+'"><div class="row top"><div class="f1 col"><div class="tm">🎯 '+esc(g.name)+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span class="gap '+st.t+'">'+gp+'% '+st.l+'</span><span class="ts">'+KK[g.kind]+(g.unit?' · '+esc(g.unit):'')+(g.weight>0?' · trọng số '+fmt(g.weight):'')+'</span></div></div>'+togBtn(nid)+'</div><div class="pb"><div class="pf '+st.t+'" style="width:'+gp+'%"></div></div>';
   let d='<div class="sg">'+sb('Hiện tại','<span class="tp">'+fmt(cur)+'</span>')+sb('Đích','<span class="tp">'+fmt(tg)+'</span>')+sb('Điểm',fmt(gScore(g))+' <span style="font-size:11px;color:var(--t3)">đạt ở '+fmt(oThr(p))+'</span>')+sb('Còn lại',fmt(Math.max(0,tg-cur)))+(gStart(g)?sb('Bắt đầu',fd(gStart(g))+(g.start_date?'':' <span style="font-size:11px;color:var(--t3)">theo O</span>')):'')+(gEnd(g)?sb('Hạn','<span style="color:'+(dl<=7?'var(--er)':'inherit')+'">'+fd(gEnd(g))+' '+(dl<0?'(quá '+(-dl)+' ngày)':'(còn '+dl+' ngày)')+'</span>'+(g.deadline?'':' <span style="font-size:11px;color:var(--t3)">theo O</span>')):'')+'</div>';
-  const meta=[['Cách đo',g.measure],['Thời điểm đo',g.measure_when],['Người xác nhận',g.confirmer]].filter(x=>x[1]); if(meta.length) d+='<div style="margin-top:10px;font-size:13.5px;color:var(--t2)">'+meta.map(x=>'<div><span style="color:var(--t3)">'+x[0]+':</span> '+esc(x[1])+'</div>').join('')+'</div>';
+  const meta=[['Ý nghĩa',g.why],['Cách đo',g.measure],['Thời điểm đo',g.measure_when],['Người xác nhận',g.confirmer]].filter(x=>x[1]); if(meta.length) d+='<div style="margin-top:10px;font-size:13.5px;color:var(--t2)">'+meta.map(x=>'<div><span style="color:var(--t3)">'+x[0]+':</span> '+esc(x[1])+'</div>').join('')+'</div>';
   if(tp!==null) d+='<div class="dbar-wrap"><div class="dbar-row"><span class="dbl">Kết quả</span><div class="db"><div class="dbf" style="width:'+gp+'%;background:var(--'+(st.t==='on'?'p':st.t==='nd'?'b2':st.t)+')"></div></div><span class="dbp mono tp">'+gp+'%</span></div><div class="dbar-row"><span class="dbl">Thời gian</span><div class="db"><div class="dbf" style="width:'+tp+'%;background:var(--b2)"></div></div><span class="dbp mono" style="color:var(--t3)">'+tp+'%</span></div></div>';
   if(st.spd) d+='<div class="ovs" data-pace="'+id+'">Tốc độ '+fmt(st.spd)+' = kết quả '+gp+'% ÷ thời gian '+tp+'% · 1,0 là đúng nhịp</div>';
   const nl=needLine(g); if(nl) d+='<div class="hint" data-need="'+id+'" style="font-size:13.5px">'+esc(nl)+'</div>';
@@ -1020,7 +1041,7 @@ const arcRow=(name,sub,un,dl,id)=>'<div class="ni dim" style="display:flex;align
 function bCard(b){
   const id=esc(b.id),nid='bn-'+b.id,t=td(),done=!dueToday(b)&&b.rhythm!=='event',as=DB.actions.filter(a=>a.bid===b.id),blk=as.filter(a=>a.status==='blocked').length,str=streak(b);
   const rl=RH[b.rhythm]+(b.rhythm==='weekly'?' · '+b.quota+' lần':'')+(b.rhythm==='multi'?' · '+slotsOf(b).length+' lần':'')+((b.rhythm==='daily'||b.rhythm==='multi')&&restSet(b).size?' · nghỉ '+[...restSet(b)].sort().map(i=>WD[i]).join(', '):'');
-  let h='<div class="card '+(b.habit?'n dim':done?'ok':'n')+'"><div class="row" style="flex-wrap:wrap"><div class="f1 col" style="min-width:150px"><div class="tm">💡 '+esc(b.name)+'</div><div class="ts">'+esc(rl)+(b.habit?' · đã thành nếp':'')+'</div></div>'+kaCtl(b,t)+togBtn(nid)+'</div>'+coverStrip(b);
+  let h='<div class="card '+(b.habit?'n dim':done?'ok':'n')+'"><div class="row" style="flex-wrap:wrap"><div class="f1 col" style="min-width:150px"><div class="tm">💡 '+esc(b.name)+'</div><div class="ts">'+esc(rl)+(b.habit?' · đã thành nếp':'')+(kaStart(b)?' · '+(kaLater(b)?'bắt đầu ':'từ ')+fd(kaStart(b)):'')+'</div></div>'+kaCtl(b,t)+togBtn(nid)+'</div>'+coverStrip(b);
   h+=kaNote(b);
   if(b.rhythm!=='event') h+='<div class="d7s">'+last7(b).map(x=>'<div class="d7 '+x.c+'" title="'+fd(x.d)+'">'+WD[pd(x.d).getDay()]+(b.rhythm==='weekly'&&x.n>1?'·'+x.n:'')+'</div>').join('')+'</div>';
   let d=(b.desc?'<div class="hint" style="margin:0 0 10px;font-size:13.5px">'+esc(b.desc)+'</div>':'')+'<div class="strow"><div class="sb3"><div class="sb3n" style="color:'+(str?'var(--p)':'var(--t3)')+'">'+str+'</div><div class="sb3l">'+(b.rhythm==='weekly'?'Tuần đạt liền':'Chuỗi ngày')+'</div></div><div class="sb3"><div class="sb3n tp">'+(b.rhythm==='multi'?fullDays(b):cisOf(b.id).length)+'</div><div class="sb3l">'+(b.rhythm==='multi'?'Ngày làm đủ':'Tổng lần')+'</div></div><div class="sb3"><div class="sb3n" style="color:'+(blk?'var(--er)':'var(--t1)')+'">'+as.length+'</div><div class="sb3l">Hành động'+(blk?' · '+blk+' chặn':'')+'</div></div></div>';
@@ -1063,7 +1084,7 @@ VIEWS.analyze=function(){
     h+='<div class="sl" style="margin:24px 0 12px">Cảnh báo</div>'+(ws.length?ws.map(wcard).join(''):'<div class="wi ok"><div class="wig">🎉</div><div class="wib"><div class="wit">Không có cảnh báo</div><div class="wid">KR đúng tiến độ, KA giữ nhịp, 6 nguồn đã phủ.</div></div></div>');
   } else if(!actP().length) h+=noSel('📊');
   const leg=legacyData();
-  h+='<div class="sl" style="margin:32px 0 14px;border-top:1px dashed var(--b1);padding-top:22px;color:var(--ok)">⚙️ Hệ thống và dữ liệu</div><div class="card" style="display:flex;flex-direction:column;gap:12px"><p style="font-size:13.5px;color:var(--t2)">'+(AUTH.local?'Đang dùng trên máy này, chưa nối kho dữ liệu: dữ liệu chỉ nằm trong trình duyệt này.':'Kho dữ liệu: đã nối. '+(OUT.length?OUT.length+' thay đổi đang chờ gửi'+(syncErr?' (mất kết nối, sẽ tự gửi lại).':'.'):'Mọi thay đổi đã được gửi lên kho.')+(lastSync?' Lần đồng bộ gần nhất: '+new Date(lastSync).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+'.':''))+' Dữ liệu trên máy không được mã hóa; hãy tải bản sao lưu định kỳ.</p>'+(AUTH.local?'<button class="bp" data-a="connect">☁ Nối kho dữ liệu</button>':'')+'<button class="bp" style="background:rgba(253,185,19,.15);color:var(--p);border:1px solid var(--p)" data-a="backup">📥 Tải bản sao lưu (.json)</button><button class="bp" style="background:rgba(0,167,157,.15);color:var(--ok);border:1px solid var(--ok)" data-a="restore">📤 Khôi phục từ file</button>'+(leg?'<button class="bp" style="background:transparent;color:var(--t1);border:1px solid var(--b2)" data-a="impLegacy">📦 Nhập dữ liệu bản cũ trên máy này ('+leg.goals.length+' mục tiêu)</button>':'')+'<div style="border-top:1px solid var(--b1);margin:4px 0"></div><button class="bd" style="width:100%" data-a="logout">🔒 '+(AUTH.local?'Xóa dữ liệu và khóa':'Đăng xuất')+'</button></div>';
+  h+='<div class="sl" style="margin:32px 0 14px;border-top:1px dashed var(--b1);padding-top:22px;color:var(--ok)">⚙️ Hệ thống và dữ liệu</div><div class="card" style="display:flex;flex-direction:column;gap:12px"><p style="font-size:13.5px;color:var(--t2)">'+(AUTH.local?'Đang dùng trên máy này, chưa nối kho dữ liệu: dữ liệu chỉ nằm trong trình duyệt này.':'Kho dữ liệu: đã nối. '+(OUT.length?OUT.length+' thay đổi đang chờ gửi'+(syncErr?' (mất kết nối, sẽ tự gửi lại).':'.'):'Mọi thay đổi đã được gửi lên kho.')+(lastSync?' Lần đồng bộ gần nhất: '+new Date(lastSync).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+'.':''))+' Dữ liệu trên máy không được mã hóa; hãy tải bản sao lưu định kỳ.</p>'+(AUTH.local?'<button class="bp" data-a="connect">☁ Nối kho dữ liệu</button>':'')+'<button class="bp" data-a="imp">📥 Nhập O, KR, KA, hành động từ Excel</button><button class="bp" style="background:rgba(253,185,19,.15);color:var(--p);border:1px solid var(--p)" data-a="backup">📥 Tải bản sao lưu (.json)</button><button class="bp" style="background:rgba(0,167,157,.15);color:var(--ok);border:1px solid var(--ok)" data-a="restore">📤 Khôi phục từ file</button>'+(leg?'<button class="bp" style="background:transparent;color:var(--t1);border:1px solid var(--b2)" data-a="impLegacy">📦 Nhập dữ liệu bản cũ trên máy này ('+leg.goals.length+' mục tiêu)</button>':'')+'<div style="border-top:1px solid var(--b1);margin:4px 0"></div><button class="bd" style="width:100%" data-a="logout">🔒 '+(AUTH.local?'Xóa dữ liệu và khóa':'Đăng xuất')+'</button></div>';
   el.innerHTML=h;
 };
 const oPaceLine=(pid,mg)=>{ const s=oSt(pid); return '<div class="opl" data-op="'+esc(pid)+'" style="'+mg+'"><span class="gap '+s.t+'">'+esc(s.l)+'</span>'+(s.tp!==undefined?'<span class="ovs" style="margin:0">kết quả '+Math.round(s.rp)+'% · thời gian '+Math.round(s.tp)+'%'+(s.spd?' · tốc độ '+fmt(s.spd):'')+'</span>':'')+'</div>'; };
@@ -1102,7 +1123,7 @@ function projBody(){
   const act=actP(),arc=DB.projects.filter(p=>p.status==='archived');
   let h='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">👁️ CHỌN O ĐỂ XEM</div><div style="border:1px solid var(--b1);border-radius:var(--rs);padding:10px;margin-bottom:18px;background:rgba(0,0,0,0.2)">';
   h+=act.length?act.map(p=>{const on=UI.pids.includes(p.id);return '<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;border:1px solid '+(on?'var(--p)':'var(--b1)')+'"><div data-a="togP" data-id="'+esc(p.id)+'" style="display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer"><div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(on?'var(--p)':'var(--t3)')+';background:'+(on?'var(--p)':'transparent')+';color:#000;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(on?'✓':'')+'</div><div style="min-width:0"><div style="font-weight:bold;color:'+(on?'var(--p)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</div><div style="font-size:11px;color:var(--t3)">'+[p.role,p.cycle].filter(Boolean).map(esc).join(' · ')+'</div></div></div><div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button class="mb '+(isClosed(p)?'ok':'p')+'" style="padding:6px 5px;font-size:10.5px" data-a="closeO" data-id="'+esc(p.id)+'" title="'+(isClosed(p)?'Xem, sửa bản chốt':'Chốt chu kỳ, chấm điểm')+'">🏁 Chốt</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="eProj" data-id="'+esc(p.id)+'">✏️ Sửa</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="archP" data-id="'+esc(p.id)+'">📦 Lưu trữ</button><button class="mb er" style="padding:6px 5px;font-size:10.5px" data-a="dProj" data-id="'+esc(p.id)+'">🗑 Xóa</button></div></div>';}).join(''):'<div class="hint" style="text-align:center">Chưa có O nào.</div>';
-  h+='</div><button class="abtn" style="width:100%;margin-bottom:18px" data-a="newP">＋ TẠO O MỚI</button>';
+  h+='</div><div style="display:flex;gap:10px;margin-bottom:18px"><button class="abtn" style="flex:1" data-a="newP">＋ TẠO O MỚI</button><button class="mb p" style="flex-shrink:0" data-a="imp">📥 Nhập Excel</button></div>';
   if(arc.length) h+='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">📦 ĐÃ LƯU TRỮ</div>'+arc.map(p=>'<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--b1)"><span style="color:var(--t3);font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+(p.cycle?' · '+esc(p.cycle):'')+(isClosed(p)&&oFinal(p)!==null?' · 🏁 '+fmt(oFinal(p)):'')+'</span><span style="display:flex;gap:6px;flex-shrink:0"><button class="mb ok" style="padding:6px 10px;font-size:11px" data-a="resP" data-id="'+esc(p.id)+'">Khôi phục</button><button class="mb er" style="padding:6px 10px;font-size:11px" data-a="dProj" data-id="'+esc(p.id)+'">Xóa</button></span></div>').join('');
   return h;
 }
@@ -1122,7 +1143,7 @@ ACT.dProj=id=>{ const p=P(id); if(!p) return; const gs=DB.goals.filter(g=>g.pid=
 /* ---------------- form KR ---------------- */
 function fGoal(g,pid){
   g=g||{}; const ps=actP(),dp=g.pid||pid||UI.pids[0]||(ps[0]&&ps[0].id)||'',k=g.kind||'sum',kas=DB.behaviors.filter(b=>bPid(b)===dp&&bLive(b));
-  return '<div class="fg"><label class="fl">Thuộc O *</label><select class="fi" id="f-gp">'+ps.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===dp?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">KR: kết quả cần đạt *</label><input class="fi" id="f-gn" maxlength="300" value="'+esc(g.name)+'" placeholder="VD: Có đủ 50 giờ huấn luyện được ghi lại"></div><div class="fg"><label class="fl">Kiểu đo</label><select class="fi" id="f-gk" data-c="gKind"><option value="sum">Cộng dồn: mỗi lần nhập một con số</option><option value="list"'+(k==='list'?' selected':'')+'>Tích theo danh sách: từng phiên, từng doanh nghiệp, từng tuần</option><option value="ka"'+(k==='ka'?' selected':'')+'>Lấy từ KA: tự đếm theo việc làm KA</option></select></div><div id="x-ka" style="display:'+(k==='ka'?'block':'none')+'"><div class="frow"><div class="fg"><label class="fl">Lấy từ KA nào</label><select class="fi" id="f-gl"><option value="">— chọn sau —</option>'+kas.map(b=>'<option value="'+esc(b.id)+'"'+(b.id===g.link_bid?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Đếm gì</label><select class="fi" id="f-gm2"><option value="count">Số lần ghi nhận</option><option value="days"'+(g.link_mode==='days'?' selected':'')+'>Số ngày làm đủ</option></select></div></div></div><div class="frow"><div class="fg"><label class="fl">Đích (con số)</label><input class="fi" id="f-gt" type="number" inputmode="decimal" min="0" step="any" value="'+(g.target>0?g.target:'')+'" placeholder="VD: 50"><div class="hint" id="x-list" style="display:'+(k==='list'?'block':'none')+'">Để trống nghĩa là phải tích hết mọi dòng. VD 9/11 tuần thì đích là 9.</div></div><div class="fg"><label class="fl">Đơn vị</label><input class="fi" id="f-gu" maxlength="40" value="'+esc(g.unit)+'" placeholder="VD: giờ"></div></div><div class="fg"><label class="fl">Cách đo</label><input class="fi" id="f-gm" maxlength="200" value="'+esc(g.measure)+'" placeholder="VD: Sổ giờ: ngày, doanh nghiệp, số giờ"></div><div class="frow"><div class="fg"><label class="fl">Thời điểm đo</label><input class="fi" id="f-gw" maxlength="120" value="'+esc(g.measure_when)+'" placeholder="VD: Hằng tuần; chốt 31/12"></div><div class="fg"><label class="fl">Người xác nhận</label><input class="fi" id="f-gc" maxlength="120" value="'+esc(g.confirmer)+'" placeholder="VD: Chị Lan Anh"></div></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-gs" type="date" value="'+esc(g.start_date||(g.id?'':td()))+'"></div><div class="fg"><label class="fl">Hạn</label><input class="fi" id="f-gd" type="date" value="'+esc(g.deadline)+'"></div></div><div class="fg"><label class="fl">Trọng số (tùy chọn)</label><input class="fi" id="f-gwt" type="number" min="0" max="100" step="any" value="'+(g.weight>0?g.weight:'')+'" placeholder="Bỏ trống: các KR chia đều"></div>';
+  return '<div class="fg"><label class="fl">Thuộc O *</label><select class="fi" id="f-gp">'+ps.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===dp?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">KR: kết quả cần đạt *</label><input class="fi" id="f-gn" maxlength="300" value="'+esc(g.name)+'" placeholder="VD: Có đủ 50 giờ huấn luyện được ghi lại"></div><div class="fg"><label class="fl">Kiểu đo</label><select class="fi" id="f-gk" data-c="gKind"><option value="sum">Cộng dồn: mỗi lần nhập một con số</option><option value="list"'+(k==='list'?' selected':'')+'>Tích theo danh sách: từng phiên, từng doanh nghiệp, từng tuần</option><option value="ka"'+(k==='ka'?' selected':'')+'>Lấy từ KA: tự đếm theo việc làm KA</option></select></div><div id="x-ka" style="display:'+(k==='ka'?'block':'none')+'"><div class="frow"><div class="fg"><label class="fl">Lấy từ KA nào</label><select class="fi" id="f-gl"><option value="">— chọn sau —</option>'+kas.map(b=>'<option value="'+esc(b.id)+'"'+(b.id===g.link_bid?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Đếm gì</label><select class="fi" id="f-gm2"><option value="count">Số lần ghi nhận</option><option value="days"'+(g.link_mode==='days'?' selected':'')+'>Số ngày làm đủ</option></select></div></div></div><div class="frow"><div class="fg"><label class="fl">Đích (con số)</label><input class="fi" id="f-gt" type="number" inputmode="decimal" min="0" step="any" value="'+(g.target>0?g.target:'')+'" placeholder="VD: 50"><div class="hint" id="x-list" style="display:'+(k==='list'?'block':'none')+'">Để trống nghĩa là phải tích hết mọi dòng. VD 9/11 tuần thì đích là 9.</div></div><div class="fg"><label class="fl">Đơn vị</label><input class="fi" id="f-gu" maxlength="40" value="'+esc(g.unit)+'" placeholder="VD: giờ"></div></div><div class="fg"><label class="fl">Ý nghĩa: vì sao KR này quan trọng?</label><textarea class="fi" id="f-gy" rows="2" maxlength="600">'+esc(g.why)+'</textarea></div><div class="fg"><label class="fl">Cách đo</label><input class="fi" id="f-gm" maxlength="200" value="'+esc(g.measure)+'" placeholder="VD: Sổ giờ: ngày, doanh nghiệp, số giờ"></div><div class="frow"><div class="fg"><label class="fl">Thời điểm đo</label><input class="fi" id="f-gw" maxlength="120" value="'+esc(g.measure_when)+'" placeholder="VD: Hằng tuần; chốt 31/12"></div><div class="fg"><label class="fl">Người xác nhận</label><input class="fi" id="f-gc" maxlength="120" value="'+esc(g.confirmer)+'" placeholder="VD: Chị Lan Anh"></div></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-gs" type="date" value="'+esc(g.start_date||(g.id?'':td()))+'"></div><div class="fg"><label class="fl">Hạn</label><input class="fi" id="f-gd" type="date" value="'+esc(g.deadline)+'"></div></div><div class="fg"><label class="fl">Trọng số (tùy chọn)</label><input class="fi" id="f-gwt" type="number" min="0" max="100" step="any" value="'+(g.weight>0?g.weight:'')+'" placeholder="Bỏ trống: các KR chia đều"></div>';
 }
 CHG.gKind=el=>{ $('x-ka').style.display=el.value==='ka'?'block':'none'; $('x-list').style.display=el.value==='list'?'block':'none'; };
 function saveGoal(old){
@@ -1131,7 +1152,7 @@ function saveGoal(old){
   if(target<0||(kind!=='list'&&!(target>0))){ toast('Cần đích là một số lớn hơn 0','er'); return false; }
   if(s&&e&&e<s){ toast('Hạn phải sau ngày bắt đầu','er'); return false; }
   if(w<0||w>100){ toast('Trọng số từ 0 đến 100','er'); return false; }
-  const rec=Object.assign({id:uid('g')},old||{},{pid,name,kind,target,unit:vv('f-gu'),measure:vv('f-gm'),measure_when:vv('f-gw'),confirmer:vv('f-gc'),weight:w,start_date:s,deadline:e,link_bid:kind==='ka'?vv('f-gl'):'',link_mode:vv('f-gm2')==='days'?'days':'count'});
+  const rec=Object.assign({id:uid('g')},old||{},{pid,name,kind,target,unit:vv('f-gu'),why:vv('f-gy'),measure:vv('f-gm'),measure_when:vv('f-gw'),confirmer:vv('f-gc'),weight:w,start_date:s,deadline:e,link_bid:kind==='ka'?vv('f-gl'):'',link_mode:vv('f-gm2')==='days'?'days':'count'});
   put('goals',rec); if(!old) OPEN.add('gd-'+rec.id); commit(); toast(old?'Đã lưu KR':'Đã tạo KR','ok');
 }
 ACT.newG=()=>{ if(!actP().length) return ACT.newP(); oMod('🎯 KR mới',fGoal(),()=>saveGoal(null)); };
@@ -1149,7 +1170,7 @@ ACT.unB=id=>{ const b=B(id); if(!b) return; put('behaviors',Object.assign({},b,{
 /* ---------------- form KA ---------------- */
 function fBeh(b,gid){
   b=b||{}; const gs=selGoals().slice(); if(b.gid&&G(b.gid)&&!gs.includes(G(b.gid))) gs.push(G(b.gid)); const dg=b.gid||gid||'',r=b.rhythm||'daily',rest=restSet(b),multi=UI.pids.length>1;
-  return '<div class="fg"><label class="fl">Thuộc KR *</label><select class="fi" id="f-bg">'+(gs.length?'':'<option value="">— Chưa có KR nào, hãy tạo KR trước —</option>')+gs.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===dg?' selected':'')+'>'+esc((multi&&P(g.pid)?'['+P(g.pid).name+'] ':'')+g.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">KA: hành vi then chốt *</label><input class="fi" id="f-bn" maxlength="300" value="'+esc(b.name)+'" placeholder="VD: Mỗi tuần mời 3 doanh nghiệp tham gia phiên"></div><div class="frow"><div class="fg"><label class="fl">Nhịp làm</label><select class="fi" id="f-br" data-c="bRhythm">'+Object.keys(RH).map(k=>'<option value="'+k+'"'+(k===r?' selected':'')+'>'+RH[k]+'</option>').join('')+'</select></div><div class="fg" id="x-q" style="display:'+(r==='weekly'?'block':'none')+'"><label class="fl">Số lần mỗi tuần</label><input class="fi" id="f-bq" type="number" min="1" max="50" step="1" value="'+(b.quota||1)+'"></div><div class="fg" id="x-s" style="display:'+(r==='multi'?'block':'none')+'"><label class="fl">Các lần trong ngày</label><input class="fi" id="f-bs" maxlength="80" value="'+esc(b.slots||'Sáng, Trưa, Tối')+'"><div class="hint">2 đến 4 tên, cách nhau bằng dấu phẩy.</div></div></div><div class="fg" id="x-r" style="display:'+(r==='daily'||r==='multi'?'block':'none')+'"><label class="fl">Ngày nghỉ (không làm đứt chuỗi)</label><input type="hidden" id="f-brest" value="'+[...rest].join(',')+'"><div class="wds">'+WD.map((w,i)=>'<span class="wd'+(rest.has(i)?' on':'')+'" data-a="wd" data-v="'+i+'">'+w+'</span>').join('')+'</div></div><div class="fg"><label class="fl">Mô tả, tiêu chí làm đúng</label><textarea class="fi" id="f-bd" rows="2" maxlength="600">'+esc(b.desc)+'</textarea></div><div class="fg"><label class="fl">Lộ trình ba mốc (tùy chọn)</label><input class="fi" id="f-b1" maxlength="200" value="'+esc(b.m1)+'" placeholder="Mốc 1 · thử: tìm chỗ vừa" style="margin-bottom:6px"><input class="fi" id="f-b2" maxlength="200" value="'+esc(b.m2)+'" placeholder="Mốc 2 · bỏ cái thừa" style="margin-bottom:6px"><input class="fi" id="f-b3" maxlength="200" value="'+esc(b.m3)+'" placeholder="Mốc 3 · thành nếp"></div>'+(b.id?'<div class="fg"><label class="fl"><input type="checkbox" id="f-bh"'+(b.habit?' checked':'')+'> Đã thành nếp: không nhắc hằng ngày nữa</label></div>':'');
+  return '<div class="fg"><label class="fl">Thuộc KR *</label><select class="fi" id="f-bg">'+(gs.length?'':'<option value="">— Chưa có KR nào, hãy tạo KR trước —</option>')+gs.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===dg?' selected':'')+'>'+esc((multi&&P(g.pid)?'['+P(g.pid).name+'] ':'')+g.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Bắt đầu đếm từ ngày *</label><input class="fi" id="f-bst" type="date" value="'+esc(b.id?kaStart(b)||td():td())+'"><div class="hint">Lịch, chuỗi và tỷ lệ giữ nhịp đều tính từ ngày này. Ngày chưa làm sau mốc này là bỏ lỡ.</div></div><div class="fg"><label class="fl">KA: hành vi then chốt *</label><input class="fi" id="f-bn" maxlength="300" value="'+esc(b.name)+'" placeholder="VD: Mỗi tuần mời 3 doanh nghiệp tham gia phiên"></div><div class="frow"><div class="fg"><label class="fl">Nhịp làm</label><select class="fi" id="f-br" data-c="bRhythm">'+Object.keys(RH).map(k=>'<option value="'+k+'"'+(k===r?' selected':'')+'>'+RH[k]+'</option>').join('')+'</select></div><div class="fg" id="x-q" style="display:'+(r==='weekly'?'block':'none')+'"><label class="fl">Số lần mỗi tuần</label><input class="fi" id="f-bq" type="number" min="1" max="50" step="1" value="'+(b.quota||1)+'"></div><div class="fg" id="x-s" style="display:'+(r==='multi'?'block':'none')+'"><label class="fl">Các lần trong ngày</label><input class="fi" id="f-bs" maxlength="80" value="'+esc(b.slots||'Sáng, Trưa, Tối')+'"><div class="hint">2 đến 4 tên, cách nhau bằng dấu phẩy.</div></div></div><div class="fg" id="x-r" style="display:'+(r==='daily'||r==='multi'?'block':'none')+'"><label class="fl">Ngày nghỉ (không làm đứt chuỗi)</label><input type="hidden" id="f-brest" value="'+[...rest].join(',')+'"><div class="wds">'+WD.map((w,i)=>'<span class="wd'+(rest.has(i)?' on':'')+'" data-a="wd" data-v="'+i+'">'+w+'</span>').join('')+'</div></div><div class="fg"><label class="fl">Mô tả, tiêu chí làm đúng</label><textarea class="fi" id="f-bd" rows="2" maxlength="600">'+esc(b.desc)+'</textarea></div><div class="fg"><label class="fl">Lộ trình ba mốc (tùy chọn)</label><input class="fi" id="f-b1" maxlength="200" value="'+esc(b.m1)+'" placeholder="Mốc 1 · thử: tìm chỗ vừa" style="margin-bottom:6px"><input class="fi" id="f-b2" maxlength="200" value="'+esc(b.m2)+'" placeholder="Mốc 2 · bỏ cái thừa" style="margin-bottom:6px"><input class="fi" id="f-b3" maxlength="200" value="'+esc(b.m3)+'" placeholder="Mốc 3 · thành nếp"></div>'+(b.id?'<div class="fg"><label class="fl"><input type="checkbox" id="f-bh"'+(b.habit?' checked':'')+'> Đã thành nếp: không nhắc hằng ngày nữa</label></div>':'');
 }
 CHG.bRhythm=el=>{ const r=el.value; $('x-q').style.display=r==='weekly'?'block':'none'; $('x-s').style.display=r==='multi'?'block':'none'; $('x-r').style.display=(r==='daily'||r==='multi')?'block':'none'; };
 ACT.wd=(id,v,el)=>{ el.classList.toggle('on'); $('f-brest').value=[...document.querySelectorAll('#mb .wd.on')].map(x=>x.dataset.v).join(','); };
@@ -1159,7 +1180,8 @@ function saveBeh(old){
   if(r==='weekly'&&!(q>=1&&q<=50)){ toast('Số lần mỗi tuần từ 1 đến 50','er'); return false; }
   if(r==='multi'&&(sl.length<2||sl.length>4)){ toast('Cần 2 đến 4 lần trong ngày','er'); return false; }
   const rest=(r==='daily'||r==='multi')?vv('f-brest'):''; if(rest.split(',').filter(Boolean).length>=7){ toast('Không thể nghỉ cả 7 ngày','er'); return false; }
-  const rec=Object.assign({id:uid('b'),created:td()},old||{},{gid,pid:'',name,desc:vv('f-bd'),rhythm:r,quota:r==='weekly'?q:1,slots:r==='multi'?sl.join(', '):'',rest,m1:vv('f-b1'),m2:vv('f-b2'),m3:vv('f-b3'),habit:!!($('f-bh')&&$('f-bh').checked)});
+  const st=normDate(vv('f-bst')); if(!st){ toast('Cần ngày bắt đầu của KA','er'); return false; }
+  const rec=Object.assign({id:uid('b'),created:td()},old||{},{start_date:st,gid,pid:'',name,desc:vv('f-bd'),rhythm:r,quota:r==='weekly'?q:1,slots:r==='multi'?sl.join(', '):'',rest,m1:vv('f-b1'),m2:vv('f-b2'),m3:vv('f-b3'),habit:!!($('f-bh')&&$('f-bh').checked)});
   put('behaviors',rec); commit(); toast(old?'Đã lưu KA':'Đã tạo KA','ok');
 }
 ACT.newB=gid=>{ if(!DB.goals.length) return toast('Hãy tạo KR trước','wa'); oMod('💡 KA mới',fBeh(null,gid),()=>saveBeh(null)); };
@@ -1343,21 +1365,21 @@ function calCell(b,d,t,s){
   if(dayDone(b,d)) return btn('ok','✓',lab+': đã làm');
   if(b.rhythm==='multi'&&daySlots(b,d)>0) return btn('pt',daySlots(b,d)+'/'+slotsOf(b).length,lab+': làm một phần');
   if(isRest(b,d)) return btn('rs','–',lab+': ngày nghỉ');
-  if(!s||d<s) return btn('nil','·',lab+': chưa bắt đầu');
+  if(!s||d<s) return btn('nil','·',lab+': trước ngày bắt đầu KA'+(s?' ('+fd(s)+')':''));
   if(d===t) return btn('wait','',lab+': hôm nay chưa ghi');
   return btn('no','✕',lab+': bỏ lỡ, chạm để tích bù');
 }
 function calView(){
   const bs=selBehs(); if(!bs.length) return '';
-  const {ds,lab}=calDays(),t=td(),dd=bs.filter(b=>(b.rhythm==='daily'||b.rhythm==='multi')&&!b.habit&&!isRest(b,t)),dn=dd.filter(b=>dayDone(b,t)).length;
+  const {ds,lab}=calDays(),t=td(),dd=bs.filter(b=>(b.rhythm==='daily'||b.rhythm==='multi')&&!b.habit&&!kaLater(b)&&!isRest(b,t)),dn=dd.filter(b=>dayDone(b,t)).length;
   let h='<div class="card" id="ka-cal" style="padding:16px 12px"><div class="row" style="gap:8px;flex-wrap:wrap"><div class="f1"><div class="tm" style="font-size:15px">📅 Lịch KA</div><div class="ts" style="font-size:13px">Hôm nay đã ghi: <b class="tp">'+dn+'/'+dd.length+'</b> KA hằng ngày</div></div><div class="seg seg-s">'+[['w','Tuần'],['m','Tháng']].map(x=>'<button class="sgb'+(UI.cal===x[0]?' on':'')+'" data-a="calMode" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div></div>';
   h+='<div class="wkn" style="margin:10px 0 6px"><button class="mb" data-a="calNav" data-v="1" title="Kỳ trước">◀</button><div class="wkt" style="font-size:14px" id="cal-lab">'+lab+'</div><button class="mb" data-a="calNav" data-v="-1" title="Kỳ sau"'+(UI.calOff<=0?' disabled':'')+'>▶</button></div>';
   h+='<div class="calw"><table class="cal"><thead><tr><th class="cn">KA · 🔥 chuỗi</th>'+ds.map(d=>'<th'+(d===t?' class="today"':'')+'><span>'+WD[pd(d).getDay()]+'</span><b>'+fd(d)+'</b>'+(d===t?'<i>Hôm nay</i>':d===addD(t,-1)?'<i>Hôm qua</i>':'')+'</th>').join('')+'</tr></thead><tbody>';
   bs.forEach(b=>{ const s=kaStart(b),si=streakInfo(b); let st;
     if(b.rhythm==='daily'||b.rhythm==='multi'){ let k=0,du=0; ds.forEach(d=>{ if(dayDone(b,d)){ k++; du++; } else if(!isRest(b,d)&&s&&d>=s&&d<t) du++; }); st='ghi '+k+'/'+du+' ngày'; }
     else st=ds.reduce((a,d)=>a+dayCis(b,d).length,0)+' lần'+(b.rhythm==='weekly'?' · tuần này '+weekCount(b,t)+'/'+b.quota:'');
-    h+='<tr data-ka="'+esc(b.id)+'"><td class="cn"><div class="cnn" data-a="goB" data-id="'+esc(b.id)+'">'+esc(b.name)+'</div><div class="cns">'+(b.rhythm!=='event'?'<span class="stk'+(si.risk?' risk':'')+'">🔥 '+si.n+(b.rhythm==='weekly'?' tuần':'')+'</span> ':'')+st+'</div></td>'+ds.map(d=>calCell(b,d,t,s)).join('')+'</tr>'; });
-  return h+'</tbody></table></div><div class="hint" style="margin-top:8px">Chạm ô ✕ để tích bù ngày đã qua. Chuỗi 🔥 đếm số ngày đã làm, chỉ đứt khi bỏ liên tiếp quá '+STREAK_GAP+' ngày; ngày nghỉ của KA không tính là bỏ.</div></div>';
+    h+='<tr data-ka="'+esc(b.id)+'"><td class="cn"><div class="cnn" data-a="goB" data-id="'+esc(b.id)+'">'+esc(b.name)+'</div><div class="cns">'+(b.rhythm!=='event'?'<span class="stk'+(si.risk?' risk':'')+'">🔥 '+si.n+(b.rhythm==='weekly'?' tuần':'')+'</span> ':'')+st+'</div>'+(s?'<div class="cns" title="'+esc(kaStartWhy(b))+'">'+(s>t?'bắt đầu ':'từ ')+fd(s)+'</div>':'')+'</td>'+ds.map(d=>calCell(b,d,t,s)).join('')+'</tr>'; });
+  return h+'</tbody></table></div><div class="hint" style="margin-top:8px">Mọi KA đếm cùng một cách, tính từ ngày bắt đầu của KA (dòng «từ …» dưới tên; sửa trong form KA). Ô · là trước ngày bắt đầu, không tính. Ô ✕ là ngày đã qua chưa làm; chạm để tích bù. Chuỗi 🔥 đếm số ngày đã làm, chỉ đứt khi bỏ liên tiếp quá '+STREAK_GAP+' ngày; ngày nghỉ của KA không tính là bỏ.</div></div>';
 }
 ACT.calMode=(id,v)=>{ UI.cal=v==='m'?'m':'w'; UI.calOff=0; LS.set(K.ui,UI); render(); };
 ACT.calNav=(id,v)=>{ UI.calOff=Math.max(0,Math.min(60,UI.calOff+(v==='1'?1:-1))); LS.set(K.ui,UI); render(); };
@@ -1368,6 +1390,284 @@ ACT.calTap=(bid,v)=>{
   if(c) return confirmBox('Bỏ ghi nhận ngày '+fd(d)+'?','KA «'+b.name+'» sẽ thành chưa làm ngày này.',[{l:'Không',c:'bs'},{l:'Bỏ ghi nhận',c:'bd',f:()=>{ del('checkins',c.id); commit(); }}]);
   put('checkins',{id:uid('c'),bid,date:d,slot:''}); commit(); toast(d===td()?'Đã ghi nhận':'Đã tích bù ngày '+fd(d),'ok');
 };
+
+/* ============================================================
+   NHẬP TỪ EXCEL: O → KR → KA → hành động, nhận cấp theo cột Mã
+   ============================================================ */
+
+/* ---------- đọc file .xlsx (tự giải nén, không cần thư viện ngoài) ---------- */
+async function readXlsx(buf){
+  const u8=new Uint8Array(buf),dv=new DataView(buf),dec=new TextDecoder();
+  let eo=-1; for(let i=u8.length-22;i>=Math.max(0,u8.length-65557);i--){ if(dv.getUint32(i,true)===0x06054b50){ eo=i; break; } }
+  if(eo<0) throw new Error('not_xlsx');
+  const n=dv.getUint16(eo+10,true),files={}; let p=dv.getUint32(eo+16,true);
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) throw new Error('not_xlsx');
+    const nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true);
+    files[dec.decode(u8.subarray(p+46,p+46+nl))]={m:dv.getUint16(p+10,true),cs:dv.getUint32(p+20,true),off:dv.getUint32(p+42,true)};
+    p+=46+nl+xl+cl;
+  }
+  const get=async name=>{ const f=files[name]; if(!f) return null; const s=f.off+30+dv.getUint16(f.off+26,true)+dv.getUint16(f.off+28,true),data=u8.subarray(s,s+f.cs);
+    if(f.m===0) return dec.decode(data); if(f.m!==8) throw new Error('zip_method');
+    return dec.decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()); };
+  const xml=s=>new DOMParser().parseFromString(s,'application/xml'),txt=el=>[...el.getElementsByTagName('t')].map(t=>t.textContent).join('');
+  const wb=await get('xl/workbook.xml'); if(!wb) throw new Error('not_xlsx');
+  const rels={},rx=await get('xl/_rels/workbook.xml.rels'); if(rx) [...xml(rx).getElementsByTagName('Relationship')].forEach(r=>{ rels[r.getAttribute('Id')]=r.getAttribute('Target'); });
+  const ssx=await get('xl/sharedStrings.xml'),ss=ssx?[...xml(ssx).getElementsByTagName('si')].map(txt):[];
+  const col=ref=>{ let c=0; for(const ch of ref.replace(/\d+/g,'')) c=c*26+ch.charCodeAt(0)-64; return c-1; };
+  const out=[];
+  for(const sh of [...xml(wb).getElementsByTagName('sheet')]){
+    let t=rels[sh.getAttribute('r:id')]||''; if(!t) continue; t=t.startsWith('/')?t.slice(1):'xl/'+t.replace(/^\.\//,'');
+    const sx=await get(t); if(!sx) continue; const rows=[];
+    [...xml(sx).getElementsByTagName('row')].forEach(r=>{ const ri=+r.getAttribute('r')-1,row=[];
+      [...r.getElementsByTagName('c')].forEach(c=>{ const ty=c.getAttribute('t'),v=c.getElementsByTagName('v')[0]; let val='';
+        if(ty==='s') val=v?ss[+v.textContent]||'':''; else if(ty==='inlineStr') val=txt(c); else if(ty==='b') val=v&&v.textContent==='1'?'TRUE':'FALSE'; else val=v?v.textContent:'';
+        if(/^-?\d+\.0+$/.test(val)) val=val.replace(/\.0+$/,'');
+        row[col(c.getAttribute('r'))]=val; });
+      rows[ri]=[...row].map(x=>x==null?'':x); });
+    out.push({name:sh.getAttribute('name')||'',rows:[...rows].map(x=>x||[])});
+  }
+  return out;
+}
+/* bảng dán từ Excel (tách bằng Tab) hoặc file CSV; ô có xuống dòng nằm trong ngoặc kép */
+function parseDelim(t,d){
+  const rows=[]; let row=[],cell='',q=false; t=String(t||'').replace(/^﻿/,'').replace(/\r\n?/g,'\n');
+  for(let i=0;i<t.length;i++){ const c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; continue; }
+    if(c==='"'&&cell==='') q=true; else if(c===d){ row.push(cell); cell=''; } else if(c==='\n'){ row.push(cell); rows.push(row); row=[]; cell=''; } else cell+=c; }
+  if(cell!==''||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+const guessDelim=t=>{ const l=String(t||'').split(/\r?\n/).slice(0,5).join('\n'); return (l.match(/\t/g)||[]).length?'\t':(l.match(/;/g)||[]).length>(l.match(/,/g)||[]).length?';':','; };
+
+/* ---------- nhận cột theo tiêu đề ---------- */
+const nrm=s=>String(s==null?'':s).toLowerCase().replace(/đ/g,'d').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const HDR=[['ma ka','kacode'],['ma','code'],['noi dung','name'],['muc tieu va ket qua then chot','name'],['hanh dong','name'],['ten','name'],['thoi diem do','when'],['thoi gian','time'],['y nghia','why'],['chi so','metric'],['cach do','measure'],['thanh cong','success'],['dich','success'],['don vi','unit'],['nguoi do','confirmer'],['nguoi xac nhan','confirmer'],['nguoi lien quan','assignee'],['nguoi','assignee'],['nguon luc','resource'],['nguon anh huong','source'],['nguon 1 6','source'],['nguon','src?'],['han','deadline'],['bat dau','start'],['ket thuc','end'],['trang thai','status'],['ghi chu','note'],['kieu do','kind'],['nhip','rhythm'],['loai','otype'],['vai tro','role'],['chu ky','cycle']];
+const hdrField=h=>{ h=nrm(h); if(!h) return ''; const x=HDR.find(k=>h===k[0]||h.startsWith(k[0]+' ')); return x?x[1]:''; };
+const cellv=v=>{ const s=String(v==null?'':v).replace(/ /g,' ').trim(); return /^[—–\-]+$/.test(s)?'':s; };
+function codeLv(c){ c=String(c||'').replace(/\s+/g,'').toUpperCase().replace(/^HĐ/,'HD'); let m;
+  if((m=/^O(\d+)$/.exec(c))) return {lv:'O',code:'O'+m[1],n:[m[1]]};
+  if((m=/^KR(\d+)\.(\d+)$/.exec(c))) return {lv:'KR',code:'KR'+m[1]+'.'+m[2],n:[m[1],m[2]]};
+  if((m=/^KA(\d+)\.(\d+)\.(\d+)$/.exec(c))) return {lv:'KA',code:'KA'+m[1]+'.'+m[2]+'.'+m[3],n:[m[1],m[2],m[3]]};
+  if((m=/^HD(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(c))) return {lv:'HD',code:'HĐ'+m[1]+'.'+m[2]+'.'+m[3]+'.'+m[4],n:[m[1],m[2],m[3],m[4]]};
+  return null; }
+
+/* ---------- đọc ngày, đích, nhịp ---------- */
+const serialDate=n=>{ const d=new Date(Date.UTC(1899,11,30)+Math.round(n)*864e5); return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate()); };
+const isSerial=s=>/^\d{5}(\.\d+)?$/.test(String(s))&&+s>30000&&+s<80000;
+const vnd=s=>{ const d=pd(s); return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear():''; };
+function oneDate(s,y){   // "31/12", "31/12/2026", "2026-12-31", số ngày của Excel
+  s=String(s||'').trim(); let m; if(!s) return '';
+  if(isSerial(s)) return serialDate(+s);
+  if((m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) return m[1]+'-'+pad(+m[2])+'-'+pad(+m[3]);
+  if((m=/^(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?$/.exec(s))){ const yy=m[3]?(m[3].length===2?'20'+m[3]:m[3]):String(y); const d=pad(+m[1]),mo=pad(+m[2]); if(+mo<1||+mo>12||+d<1||+d>31) return ''; return yy+'-'+mo+'-'+d; }
+  return '';
+}
+function dateRange(s,y){   // "1/10–31/12/2026", "13/10–31/12", "Tháng 12", "Tháng 12/2026"
+  s=String(s||'').replace(/\s+/g,' ').trim(); if(!s) return null; let m;
+  if((m=/^th[áa]ng (\d{1,2})(?:[\/.](\d{4}))?$/i.exec(s))){ const yy=+(m[2]||y),mo=+m[1]; if(mo<1||mo>12) return null; return {s:yy+'-'+pad(mo)+'-01',e:iso(new Date(yy,mo,0))}; }
+  const parts=s.split(/\s*[–—-]\s*|\s+đến\s+/); if(parts.length!==2) return null;
+  const ye=(/(\d{4})$/.exec(parts[1])||[])[1]||(/(\d{4})$/.exec(parts[0])||[])[1]||y;
+  const e=oneDate(parts[1],ye); let st=oneDate(parts[0],ye); if(!e||!st) return null;
+  if(st>e&&!/\d{4}$/.test(parts[0])) st=oneDate(parts[0],+ye-1);
+  return {s:st,e};
+}
+const cycleOf=(s,e)=>{ if(!s||!e) return ''; const a=pd(s),b=pd(e),q=d=>Math.floor(d.getMonth()/3)+1; return a.getFullYear()===b.getFullYear()&&q(a)===q(b)?'Quý '+q(a)+'/'+a.getFullYear():''; };
+function unitFromMetric(m){ m=String(m||'').trim(); if(!/^số\s/i.test(m)) return ''; return m.replace(/^số\s+/i,'').split(/\s+(?:có|đã|được|đủ|trên|≥|≤|>|<)\s*|[,;(]/)[0].trim(); }
+function parseTarget(raw,metric){   // trả {target,unit,t:'ok'|'warn'|'miss',m}
+  const orig=String(raw||'').trim(),s=orig.replace(/\([^)]*\)/g,' ').replace(/\s+/g,' ').trim(),mu=unitFromMetric(metric); let m;
+  if(!s) return {target:'',unit:mu,t:'miss',m:'Không có con số đích trong file'};
+  if((m=/^(\d+(?:[.,]\d+)?)$/.exec(s))) return {target:num(m[1]),unit:mu,t:mu?'warn':'ok',m:mu?'Đơn vị lấy từ cột Chỉ số: «'+metric+'»':''};
+  if((m=/^(\d+(?:[.,]\d+)?)\s*([^\d\/;,≥≤<>%=]+)$/.exec(s))) return {target:num(m[1]),unit:m[2].trim(),t:'ok',m:''};
+  const nums=(s.match(/\d+(?:[.,]\d+)?/g)||[]).length;
+  if(/[;≥≤<>]/.test(s)||nums>3) return {target:'',unit:'',t:'miss',m:'Thành công ghi «'+orig+'»: có nhiều con số, cần chọn một con số làm đích'};
+  if((m=/^(\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)\s*([^\d]*)$/.exec(s))) return {target:num(m[1]),unit:(m[3].trim()||mu),t:'warn',m:'Đọc «'+orig+'» thành đích '+fmt(num(m[1]))+(m[3].trim()||mu?' '+(m[3].trim()||mu):'')};
+  if((m=/^(\d+(?:[.,]\d+)?)\s*([^\d\/;,]+?)\s+(.*\d.*)$/.exec(s))) return {target:num(m[1]),unit:m[2].trim(),t:'warn',m:'Đọc «'+orig+'» thành đích '+fmt(num(m[1]))+' '+m[2].trim()+'; phần «'+m[3]+'» chưa dùng'};
+  return {target:'',unit:mu,t:'miss',m:'Không đọc được con số đích từ «'+orig+'»'};
+}
+function guessRhythm(name){   // trả {rhythm,quota,slots,t,m}
+  const s=String(name||'').toLowerCase(); let m;
+  if(/sáng\s*,?\s*trưa\s*,?\s*(và\s*)?tối/.test(s)) return {rhythm:'multi',quota:1,slots:'Sáng, Trưa, Tối',t:'ok',m:''};
+  if((m=/(\d+)\s*lần\s*(mỗi|một|\/)\s*tuần|mỗi tuần\s*(\d+)\s*lần/.exec(s))) return {rhythm:'weekly',quota:+(m[1]||m[3]),slots:'',t:'ok',m:''};
+  if(/mỗi ngày|hằng ngày|hàng ngày|của ngày|mỗi sáng|mỗi tối|mỗi đêm/.test(s)) return {rhythm:'daily',quota:1,slots:'',t:'ok',m:''};
+  if(/mỗi tuần|hằng tuần|hàng tuần/.test(s)){ const q=(m=/mỗi tuần\D*?(\d+)/.exec(s))?+m[1]:1; return {rhythm:'weekly',quota:q,slots:'',t:'warn',m:'Nhịp đoán là mỗi tuần '+q+' lần, từ câu «'+name+'»'}; }
+  if(/sau mỗi|mỗi khi/.test(s)) return {rhythm:'event',quota:1,slots:'',t:'ok',m:''};
+  if(/mỗi lần|^khi /.test(s)) return {rhythm:'event',quota:1,slots:'',t:'warn',m:'Nhịp đoán là theo sự kiện, từ câu «'+name+'»'};
+  return {rhythm:'daily',quota:1,slots:'',t:'warn',m:'Câu KA không nói rõ nhịp: tạm để mỗi ngày'};
+}
+function parseSource(v){ const s=nrm(v); if(!s) return 0; let m=/^(?:nguon )?([1-6])$/.exec(s); if(m) return +m[1];
+  const x=SRC.find(r=>nrm(r.s)===s||nrm(r.n)===s||s.startsWith(nrm(r.s))); return x?x.id:0; }
+const parseStatus=v=>{ const s=nrm(v); return /xong|hoan thanh|done/.test(s)?'done':/chan|block/.test(s)?'blocked':'pending'; };
+
+/* ---------- dựng danh sách mục cần nhập ---------- */
+let IMP=null;
+const LV={O:{t:'projects',l:'O'},KR:{t:'goals',l:'KR'},KA:{t:'behaviors',l:'KA'},HD:{t:'actions',l:'Hành động'}};
+function impBuild(sheets,label){
+  const raw={},acts=[],notes=[],years={};
+  sheets.forEach(sh=>sh.rows.forEach(r=>r.forEach(c=>{ const m=/(20\d\d)/.exec(String(c||'')); if(m&&!isSerial(c)) years[m[1]]=(years[m[1]]||0)+1; })));
+  const yHint=+(Object.keys(years).sort((a,b)=>years[b]-years[a])[0]||pd(td()).getFullYear());
+  let noCode=0;
+  sheets.forEach(sh=>{
+    const hi=sh.rows.findIndex(r=>r.some(c=>{ const f=hdrField(c); return f==='code'||f==='kacode'; }));
+    let map;
+    if(hi>=0){ map=sh.rows[hi].map(hdrField); const isAct=map.includes('kacode'); map=map.map(f=>f==='src?'?(isAct?'source':''):f); }
+    else { const ci=[0,1,2,3,4,5].find(i=>sh.rows.filter(r=>codeLv(r[i])).length>0); if(ci===undefined) return; map=[]; map[ci]='code'; map[ci+1]='name'; notes.push('Bảng «'+sh.name+'» không có dòng tiêu đề: chỉ đọc được mã và tên.'); }
+    const pos={};   // dòng cha gần nhất theo vị trí trong cùng tab
+    for(let r=hi+1;r<sh.rows.length;r++){
+      const row=sh.rows[r]||[],o={}; map.forEach((f,i)=>{ if(f){ const v=cellv(row[i]); if(v!==''&&o[f]===undefined) o[f]=v; } });
+      const c=codeLv(o.code),where=sh.name+' · dòng '+(r+1);
+      if(o.kacode||(c&&c.lv==='HD')){ if(o.name||o.source) acts.push({o,c,where,posKA:pos.KA}); continue; }
+      if(!c){ if(o.code&&o.name) noCode++; continue; }
+      const sc=Object.keys(o).length,rec={o,sc,where,sheet:sh.name,posParent:c.lv==='KR'?pos.O:c.lv==='KA'?pos.KR:null};
+      pos[c.lv]=c.code;
+      if(!raw[c.code]) raw[c.code]={c,recs:[]}; raw[c.code].recs.push(rec);
+    }
+  });
+  if(noCode) notes.push(noCode+' dòng có ô Mã không đúng mẫu O1, KR1.1, KA1.1.1, HĐ1.1.1.1 nên bỏ qua.');
+  const items=[],idx={},flag=(it,k,t,m)=>{ it.fl[k]={t,m}; },mk=(lv,code,where)=>({lv,code,where,f:{},src:{},fl:{},pi:null,pdb:'',ex:null});
+  const pick=code=>{ const x=raw[code],recs=x.recs.slice().sort((a,b)=>b.sc-a.sc),o=Object.assign({},recs[0].o); recs.slice(1).forEach(r=>{ for(const k in r.o) if(o[k]===undefined) o[k]=r.o[k]; }); return {o,best:recs[0],all:recs}; };
+  const set=(it,k,v,s)=>{ if(v===undefined||v===null||v==='') return; it.f[k]=v; it.src[k]=s||'file'; };
+  const sortCodes=lv=>Object.keys(raw).filter(k=>raw[k].c.lv===lv).sort((a,b)=>{ const x=raw[a].c.n.map(Number),y=raw[b].c.n.map(Number); for(let i=0;i<x.length;i++) if(x[i]!==y[i]) return x[i]-y[i]; return 0; });
+  const oYear={};
+  sortCodes('O').forEach(code=>{ const {o,best}=pick(code),it=mk('O',code,best.where); idx[code]=items.length; items.push(it);
+    set(it,'name',o.name); const why=[o.why,o.resource?'Nguồn lực: '+o.resource:''].filter(Boolean).join('\n'); set(it,'desc',why);
+    const sc=(o.otype||'')+' '+(o.success||''); if(/cam k[eế]t/i.test(sc)||/\b1[,.]0\b/.test(sc)) set(it,'otype','commit'); else if(/kh[aá]t v[oọ]ng|0[,.]7/i.test(sc)) set(it,'otype','aspire'); else { set(it,'otype','aspire','guess'); flag(it,'otype','warn','Không thấy loại OKR: tạm để Khát vọng (0,7 là đạt)'); }
+    const rm=/^O\d+\s+(.+)$/i.exec(best.sheet); set(it,'role',o.role||(rm?rm[1].trim():''),o.role?'file':'guess');
+    const dr=o.start||o.end?{s:oneDate(o.start,yHint),e:oneDate(o.end,yHint)}:dateRange(o.time,yHint);
+    if(dr){ set(it,'start_date',dr.s); set(it,'end_date',dr.e); oYear[code]=+(dr.e||dr.s).slice(0,4); } else if(o.time) flag(it,'start_date','warn','Không đọc được thời gian «'+o.time+'»');
+    if(!dr) flag(it,'end_date','warn','O chưa có ngày bắt đầu, kết thúc: KR sẽ không chấm được nhanh hay chậm');
+    set(it,'cycle',o.cycle||cycleOf(it.f.start_date,it.f.end_date),o.cycle?'file':'guess');
+  });
+  const parentOf=(it,pc,pos,plv)=>{   // gắn cha: theo mã, rồi theo vị trí trong tab, rồi theo dữ liệu đã có trong app
+    if(idx[pc]!==undefined){ it.pi=idx[pc]; return; }
+    if(pos&&idx[pos]!==undefined){ it.pi=idx[pos]; flag(it,'_p','warn','Mã '+it.code+' không khớp '+pc+' nào trong file; xếp vào '+pos+' theo vị trí dòng'); return; }
+    const db=dbByCode(plv,pc); if(db.length){ it.pdb=db[0].id; if(db.length>1) flag(it,'_p','warn','Có '+db.length+' mục '+pc+' trong app; gắn vào mục mới nhất'); else flag(it,'_p','info','Gắn vào '+pc+' đã có trong app'); return; }
+    flag(it,'_p','miss','Không tìm thấy '+pc+' trong file hay trong app');
+  };
+  sortCodes('KR').forEach(code=>{ const {o,best}=pick(code),c=raw[code].c,it=mk('KR',code,best.where); idx[code]=items.length; items.push(it);
+    parentOf(it,'O'+c.n[0],best.posParent,'O');
+    const y=oYear['O'+c.n[0]]||oYear[best.posParent]||yHint;
+    set(it,'name',o.name); set(it,'why',[o.why,o.resource?'Nguồn lực: '+o.resource:''].filter(Boolean).join('\n'));
+    set(it,'kind',/danh s[aá]ch|t[ií]ch/i.test(o.kind||'')?'list':'sum',o.kind?'file':'def');
+    const tg=o.unit&&/^\d/.test(o.success||'')?{target:num(o.success),unit:o.unit,t:'ok',m:''}:parseTarget(o.success,o.metric);
+    set(it,'target',tg.target,tg.t==='ok'?'file':'guess'); set(it,'unit',tg.unit,tg.t==='ok'&&!(/^\d+(?:[.,]\d+)?$/.test(String(o.success||'').replace(/\([^)]*\)/g,'').trim()))?'file':'guess');
+    if(tg.t!=='ok') flag(it,'target',tg.t,tg.m);
+    set(it,'measure',o.measure); set(it,'confirmer',o.confirmer);
+    if(o.when){ if(isSerial(o.when)){ set(it,'measure_when',vnd(serialDate(+o.when)),'guess'); flag(it,'measure_when','warn','Thời điểm đo trong file là số '+o.when+' (Excel đổi ngày thành số); đọc thành '+vnd(serialDate(+o.when))); } else set(it,'measure_when',o.when); }
+    const dr=o.start||o.end?{s:oneDate(o.start,y),e:oneDate(o.end,y)}:dateRange(o.time,y);
+    if(dr){ set(it,'start_date',dr.s); set(it,'deadline',dr.e); } else if(o.time) flag(it,'deadline','warn','Không đọc được thời gian «'+o.time+'»: KR sẽ theo ngày của O');
+  });
+  sortCodes('KA').forEach(code=>{ const {o,best}=pick(code),c=raw[code].c,it=mk('KA',code,best.where); idx[code]=items.length; items.push(it);
+    parentOf(it,'KR'+c.n[0]+'.'+c.n[1],best.posParent,'KR');
+    set(it,'name',o.name); set(it,'desc',[o.why,o.resource?'Nguồn lực: '+o.resource:''].filter(Boolean).join('\n'));
+    const g=o.rhythm?guessRhythm(o.rhythm):guessRhythm(o.name); set(it,'rhythm',g.rhythm,'guess'); set(it,'quota',g.quota,'guess'); if(g.slots) set(it,'slots',g.slots,'guess'); if(g.t!=='ok') flag(it,'rhythm','warn',g.m);
+    const ms=String(o.time||'').split(/\s*·\s*/).filter(Boolean); if(ms.length>=2&&!dateRange(o.time,yHint)) ['m1','m2','m3'].forEach((k,i)=>set(it,k,ms[i]));
+  });
+  acts.forEach(a=>{ const o=a.o,it=mk('HD',a.c?a.c.code:'',a.where); items.push(it);
+    const kc=o.kacode?codeLv(o.kacode):a.c?codeLv('KA'+a.c.n.slice(0,3).join('.')):null;
+    if(!kc||kc.lv!=='KA') flag(it,'_p','miss','Ô Mã KA «'+(o.kacode||'')+'» không đúng mẫu KA1.1.1'); else { it.kac=kc.code; parentOf(it,kc.code,null,'KA'); }
+    set(it,'name',o.name); const sv=parseSource(o.source); if(sv) set(it,'source',sv); else flag(it,'source','miss',o.source?'Không hiểu nguồn «'+o.source+'»: chọn 1 đến 6':'Chưa có nguồn ảnh hưởng (1 đến 6)');
+    set(it,'assignee',o.assignee); set(it,'note',o.note); if(o.status) set(it,'status',parseStatus(o.status));
+    if(o.deadline){ const d=oneDate(o.deadline,yHint); if(d) set(it,'deadline',d); else flag(it,'deadline','warn','Không đọc được hạn «'+o.deadline+'»'); }
+  });
+  items.forEach(it=>{ impMatch(it,items); impCheck(it); });
+  if(items.some(it=>it.lv==='KR')) notes.push('File không có cột kiểu đo: KR mặc định là Cộng dồn, đổi được ở từng dòng.');
+  if(sheets.some(sh=>/ngu[oồ]n/i.test(sh.name)&&!sh.rows.some(r=>r.some(c=>hdrField(c)==='kacode')))) notes.push('Tab «Nguồn» là tài liệu tham khảo, không nhập.');
+  if(!items.some(it=>it.lv==='HD')) notes.push('Chưa có hành động theo 6 nguồn. Thêm tab «Hành động» (cột Mã KA, Hành động, Nguồn 1–6, Người liên quan, Hạn) rồi nhập lại, hoặc nhập tay sau.');
+  return {label,items,notes};
+}
+function dbByCode(lv,code){ const t=LV[lv].t; return DB[t].filter(r=>r.code===code&&(lv!=='O'?true:r.status!=='archived')).filter(r=>{ const pid=lv==='O'?r.id:lv==='KR'?r.pid:lv==='KA'?bPid(r):aPid(r),p=P(pid); return p&&p.status!=='archived'&&!p.closed_at; }).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))); }
+function impCheck(it){   // cờ đỏ cho trường bắt buộc; gọi lại sau mỗi lần sửa
+  const f=it.f,miss=(k,m)=>{ if(!it.fl[k]||it.fl[k].t!=='miss') it.fl[k]={t:'miss',m}; },ok=k=>{ if(it.fl[k]&&it.fl[k].t==='miss') delete it.fl[k]; };
+  if(!String(f.name||'').trim()&&!(it.ex&&it.ex.name)) miss('name','Thiếu tên'); else ok('name');
+  if(it.lv==='KR'){ const kept=it.ex&&num(it.ex.target)>0&&!String(f.target==null?'':f.target).trim();
+    if(kept) it.fl.target={t:'info',m:'File không có con số đích dùng được; giữ đích đang có trong app: '+fmt(it.ex.target)};
+    else if((f.kind||'sum')!=='list'&&!(num(f.target)>0)) miss('target',(it.fl.target&&it.fl.target.m)||'Thiếu con số đích'); else ok('target'); }
+  if(it.lv==='HD'){ if(!(+f.source>=1&&+f.source<=6)) miss('source',(it.fl.source&&it.fl.source.m)||'Chưa có nguồn ảnh hưởng (1 đến 6)'); else ok('source'); }
+}
+function impMatch(it,items){   // tìm bản ghi đã có để cập nhật thay vì tạo trùng
+  it.ex=null; if(it.fl._p&&it.fl._p.t==='miss') return;
+  const t=LV[it.lv].t,par=it.pi!==null?(items[it.pi].ex&&items[it.pi].ex.id):it.pdb;
+  if(it.lv==='O'){ const cs=DB.projects.filter(p=>p.code===it.code); it.ex=cs.find(p=>{ const s=it.f.start_date,e=it.f.end_date; return s&&e&&p.start_date&&p.end_date?(p.start_date<=e&&s<=p.end_date):nrm(p.name)===nrm(it.f.name); })||null; return; }
+  if(!par) return;
+  const key=it.lv==='KR'?'pid':it.lv==='KA'?'gid':'bid';
+  it.ex=DB[t].find(r=>r[key]===par&&(it.code?r.code===it.code:nrm(r.name)===nrm(it.f.name)))||null;
+}
+const impBlocked=(it,items)=>{ if(Object.values(it.fl).some(x=>x.t==='miss')) return true; return it.pi!==null&&impBlocked(items[it.pi],items); };
+
+/* ---------- màn hình ---------- */
+ACT.imp=()=>{ const tpl=DB.behaviors.some(b=>b.code&&bLive(b));
+  oMod('📥 Nhập từ Excel','<div class="hint" style="margin:0 0 14px;font-style:normal;font-size:14px;line-height:1.55">File cần có cột <b>Mã</b>: O1 · KR1.1 · KA1.1.1. Hành động để ở tab riêng với các cột <b>Mã KA, Hành động, Nguồn (1–6), Người liên quan, Hạn</b>. Nhập lại cùng file chỉ cập nhật, không tạo trùng, không đụng số liệu đã ghi.</div><button class="bp" style="width:100%" data-a="impFile">📂 CHỌN FILE EXCEL (.xlsx, .csv)</button><div class="fg" style="margin-top:18px"><label class="fl" for="imp-paste">Hoặc dán bảng đã chép từ Excel</label><textarea class="fi" id="imp-paste" rows="5" placeholder="Bôi đen bảng trong Excel (cả dòng tiêu đề), Ctrl+C rồi dán vào đây"></textarea></div><button class="bs" style="width:100%" data-a="impPaste">ĐỌC BẢNG ĐÃ DÁN</button>'+(tpl?'<button class="lnk" data-a="impTpl" style="display:block">⬇ Tải mẫu tab Hành động, có sẵn mã các KA (.csv)</button>':''),null,null); };
+ACT.impFile=()=>$('xlsx-file').click();
+ACT.impPaste=()=>{ const t=$('imp-paste')?$('imp-paste').value:''; if(!t.trim()) return toast('Chưa có gì để đọc','er'); impOpen([{name:'Bảng dán',rows:parseDelim(t,guessDelim(t))}],'bảng đã dán'); };
+async function impReadFile(file){
+  try{ let sheets;
+    if(/\.csv$/i.test(file.name)||/text\/csv/.test(file.type)){ const t=await file.text(); sheets=[{name:file.name.replace(/\.csv$/i,''),rows:parseDelim(t,guessDelim(t))}]; }
+    else { if(typeof DecompressionStream==='undefined') return toast('Trình duyệt này chưa đọc được .xlsx: hãy dán bảng thay vì chọn file','er'); sheets=await readXlsx(await file.arrayBuffer()); }
+    impOpen(sheets,file.name);
+  }catch(e){ toast(/not_xlsx|zip/.test(String(e&&e.message))?'File không phải .xlsx (file .xls đời cũ: mở bằng Excel rồi lưu lại dạng .xlsx)':'Không đọc được file','er'); }
+}
+function impOpen(sheets,label){
+  const r=impBuild(sheets,label); if(!r.items.length) return toast('Không thấy dòng nào có mã O, KR, KA hay HĐ','er');
+  IMP=r; oMod('📥 Xem trước khi nhập',impBody(),impSave,null,impLabel());
+}
+const impLabel=()=>'NHẬP '+IMP.items.filter(it=>!impBlocked(it,IMP.items)).length+' MỤC';
+function impSum(){
+  const its=IMP.items,c=lv=>its.filter(it=>it.lv===lv).length,nb=its.filter(it=>Object.values(it.fl).some(x=>x.t==='miss')).length,nw=its.reduce((a,it)=>a+Object.values(it.fl).filter(x=>x.t==='warn').length,0),nx=its.filter(it=>it.ex).length;
+  return '<div class="ni" id="imp-sum"><div style="font-weight:bold">Đọc từ '+esc(IMP.label)+': '+c('O')+' O · '+c('KR')+' KR · '+c('KA')+' KA · '+c('HD')+' hành động</div><div class="ovs">'+(its.length-nx)+' mục mới · '+nx+' mục đã có, sẽ cập nhật</div><div style="margin-top:6px;font-size:14px">'+(nb?'<div class="ter">🔴 '+nb+' dòng thiếu thông tin bắt buộc: điền ngay ở dưới, nếu không dòng đó (và các dòng con) sẽ bị bỏ qua.</div>':'<div class="tok">Không còn dòng nào thiếu thông tin bắt buộc.</div>')+(nw?'<div class="twa">🟡 '+nw+' chỗ app đoán từ câu chữ: xem lại, sửa nếu sai.</div>':'')+'</div>'+(IMP.notes.length?'<ul class="imnotes">'+IMP.notes.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul>':'')+'</div>';
+}
+function impBody(){ return impSum()+IMP.items.map((it,i)=>'<div id="imi-'+i+'">'+impItem(it,i)+'</div>').join(''); }
+const impChip=(it,i)=>{ const blk=impBlocked(it,IMP.items); return '<span id="ims-'+i+'" class="ims '+(blk?'x">Bỏ qua nếu không sửa':it.ex?'u">Cập nhật':'n">Mới')+'</span>'; };
+function impMsgs(it){
+  const fl=it.fl,par=it.pi!==null?IMP.items[it.pi]:null,ms=Object.keys(fl).map(k=>'<div class="'+(fl[k].t==='miss'?'ter':fl[k].t==='warn'?'twa':'')+'">'+(fl[k].t==='miss'?'🔴 ':fl[k].t==='warn'?'🟡 ':'ℹ️ ')+esc(fl[k].m)+'</div>');
+  if(par&&impBlocked(par,IMP.items)&&!Object.values(fl).some(x=>x.t==='miss')) ms.push('<div class="ter">🔴 Dòng cha '+esc(par.code)+' đang thiếu thông tin nên dòng này cũng bị bỏ qua</div>');
+  return ms.join('');
+}
+function impItem(it,i){
+  const f=it.f,fl=it.fl,cls=k=>'fi'+(fl[k]?(fl[k].t==='miss'?' imx':fl[k].t==='warn'?' imw':''):''),
+    inp=(k,ph,ty)=>'<input class="'+cls(k)+'"'+(ty?' type="'+ty+'"':'')+(ty==='number'?' inputmode="decimal" step="any" min="0"':'')+' data-i="imp" data-k="'+i+':'+k+'" value="'+esc(f[k]==null?'':f[k])+'" placeholder="'+ph+'" aria-label="'+ph+'">',
+    sel=(k,lab,opts)=>'<select class="'+cls(k)+'" data-c="impSel" data-k="'+i+':'+k+'" aria-label="'+lab+'">'+opts.map(o=>'<option value="'+o[0]+'"'+(String(f[k]==null?'':f[k])===String(o[0])?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
+  let h='<div class="imi lv'+it.lv+(impBlocked(it,IMP.items)?' blk':'')+'"><div class="imh"><span class="imc">'+esc(it.code||LV[it.lv].l)+'</span>'+impChip(it,i)+(it.lv==='HD'&&it.kac?'<span class="ovs" style="margin:0">thuộc '+esc(it.kac)+'</span>':'')+'</div>'+inp('name','Tên');
+  if(it.lv==='O') h+='<div class="imr">'+sel('otype','Loại OKR',[['aspire','Khát vọng 0,7'],['commit','Cam kết 1,0']])+inp('role','Vai trò')+'</div><div class="imr">'+inp('start_date','Bắt đầu','date')+inp('end_date','Kết thúc','date')+'</div>';
+  if(it.lv==='KR') h+='<div class="imr r3">'+inp('target','Đích','number')+inp('unit','Đơn vị')+sel('kind','Kiểu đo',[['sum','Cộng dồn'],['list','Tích danh sách'],['ka','Lấy từ KA']])+'</div><div class="imr">'+inp('start_date','Bắt đầu','date')+inp('deadline','Hạn','date')+'</div>';
+  if(it.lv==='KA') h+='<div class="imr">'+sel('rhythm','Nhịp',Object.keys(RH).map(k=>[k,RH[k]]))+(f.rhythm==='weekly'?inp('quota','Số lần mỗi tuần','number'):f.rhythm==='multi'?inp('slots','Các buổi'):'<span></span>')+'</div>';
+  if(it.lv==='HD') h+='<div class="imr">'+sel('source','Nguồn',[['','Nguồn?']].concat(SRC.map(s=>[s.id,s.id+' '+s.n])))+inp('deadline','Hạn','date')+'</div><div class="imr">'+inp('assignee','Người liên quan')+'<span></span></div>';
+  return h+'<div class="imn" id="imn-'+i+'">'+impMsgs(it)+'</div><div class="ovs" style="margin-top:4px;opacity:.7">'+esc(it.where)+'</div></div>';
+}
+function impTouch(i,k,v){ const it=IMP.items[i]; if(!it) return; it.f[k]=v; it.src[k]='user'; if(it.fl[k]&&it.fl[k].t==='warn') delete it.fl[k]; impCheck(it); }
+function impRefresh(){ IMP.items.forEach((it,i)=>{ const a=$('ims-'+i),b=$('imn-'+i),w=$('imi-'+i); if(a) a.outerHTML=impChip(it,i); if(b) b.innerHTML=impMsgs(it); if(w&&w.firstChild) w.firstChild.classList.toggle('blk',impBlocked(it,IMP.items)); }); const s=$('imp-sum'); if(s) s.outerHTML=impSum(); $('mbok').textContent=impLabel(); }
+INP.imp=el=>{ if(!IMP||!$('imp-sum')) return; const [i,k]=String(el.dataset.k).split(':'),it=IMP.items[+i]; if(!it) return; impTouch(+i,k,el.value.trim()); el.classList.remove('imw'); el.classList.toggle('imx',!!(it.fl[k]&&it.fl[k].t==='miss')); impRefresh(); };
+CHG.impSel=el=>{ if(!IMP||!$('imp-sum')) return; const [i,k]=String(el.dataset.k).split(':'); impTouch(+i,k,el.value); const y=$('mb').scrollTop; $('mb').innerHTML=impBody(); $('mb').scrollTop=y; $('mbok').textContent=impLabel(); };
+function impSave(){
+  const its=IMP.items,bad=its.filter(it=>impBlocked(it,its));
+  if(bad.length){ confirmBox('Còn '+bad.length+' dòng thiếu thông tin bắt buộc.','Nhập ngay phần còn lại thì các dòng đó (kèm dòng con) bị bỏ qua, anh nhập tay sau hoặc sửa file rồi nhập lại.',[{l:'Quay lại sửa',c:'bs'},{l:'Nhập phần còn lại',c:'bp',f:()=>{ cMod(); impApply(); }}]); return false; }
+  setTimeout(impApply,0);
+}
+function impApply(){
+  const its=IMP.items,ids={},rep={n:{O:0,KR:0,KA:0,HD:0},u:{O:0,KR:0,KA:0,HD:0},skip:[],guess:[]},newO=[];
+  const val=(it,k)=>{ const v=it.f[k]; return k==='target'||k==='quota'?num(v):k==='source'?Math.min(6,Math.max(1,Math.round(num(v))||1)):v; };
+  const merge=(it,base,keys)=>{ const r=Object.assign({},base); keys.forEach(k=>{ const v=it.f[k]; if(v===undefined||v==='') return; const s=it.src[k]; if(!it.ex||s==='file'||s==='user'||r[k]===undefined||r[k]===''||r[k]===null) r[k]=val(it,k); }); return r; };
+  its.forEach((it,i)=>{
+    if(impBlocked(it,its)){ const why=Object.values(it.fl).filter(x=>x.t==='miss').map(x=>x.m).join('; ')||'dòng cha bị bỏ qua'; rep.skip.push((it.code||'Hành động')+' · '+(it.f.name||'(chưa có tên)')+': '+why); return; }
+    const par=it.pi!==null?ids[it.pi]:it.pdb; if(it.lv!=='O'&&!par){ rep.skip.push((it.code||'Hành động')+' · '+(it.f.name||'')+': không có dòng cha'); return; }
+    let rec;
+    if(it.lv==='O'){ rec=merge(it,it.ex||{id:uid('p'),status:'active',created:td(),archived_at:''},['name','desc','otype','role','cycle','start_date','end_date']); rec.code=it.code; put('projects',rec); if(!it.ex) newO.push(rec.id); }
+    if(it.lv==='KR'){ rec=merge(it,it.ex||{id:uid('g'),weight:0,link_mode:'count',link_bid:''},['name','why','kind','target','unit','measure','measure_when','confirmer','start_date','deadline']); rec.code=it.code; rec.pid=par; put('goals',rec); }
+    if(it.lv==='KA'){ rec=merge(it,it.ex||{id:uid('b'),created:td(),habit:false,rest:''},['name','desc','rhythm','quota','slots','m1','m2','m3']); rec.code=it.code; rec.gid=par; rec.pid=''; if(!it.ex){ const g=G(par),gs=g?gStart(g):''; rec.start_date=gs&&gs>td()?gs:td(); } if(rec.rhythm!=='weekly') rec.quota=1; if(rec.rhythm!=='multi') rec.slots=''; put('behaviors',rec); }
+    if(it.lv==='HD'){ rec=merge(it,it.ex||{id:uid('a'),status:'pending'},['name','source','assignee','deadline','status','note']); if(it.code) rec.code=it.code; rec.bid=par; rec.pid=''; put('actions',rec); }
+    ids[i]=rec.id; (it.ex?rep.u:rep.n)[it.lv]++;
+    Object.keys(it.fl).filter(k=>it.fl[k].t==='warn').forEach(k=>rep.guess.push((it.code||'Hành động')+' · '+it.fl[k].m));
+  });
+  its.forEach((it,i)=>{ if(it.lv==='KR'&&ids[i]){ const g=G(ids[i]); if(g&&g.kind==='ka'&&!B(g.link_bid)){ const k=its.findIndex((x,j)=>x.lv==='KA'&&x.pi===i&&ids[j]); if(k>-1) put('goals',Object.assign({},g,{link_bid:ids[k]})); } } });
+  newO.forEach(id=>{ if(!UI.pids.includes(id)) UI.pids.push(id); }); fixUI(); IMP=null; commit();
+  const line=o=>['O','KR','KA','HD'].filter(k=>o[k]).map(k=>o[k]+' '+LV[k].l).join(' · ')||'0';
+  oMod('✅ Đã nhập','<div class="ni"><div><b>Mới:</b> '+line(rep.n)+'</div><div><b>Cập nhật:</b> '+line(rep.u)+'</div><div class="ovs">Số liệu, lần ghi nhận đã có giữ nguyên.</div></div>'+(rep.skip.length?'<div class="sl" style="margin:16px 0 8px;color:var(--er)">⏭ Bỏ qua, cần nhập tay ('+rep.skip.length+')</div><div class="imlist" id="imp-skip">'+rep.skip.map(x=>'<div>• '+esc(x)+'</div>').join('')+'</div>':'')+(rep.guess.length?'<div class="sl" style="margin:16px 0 8px;color:var(--wa)">🟡 Đã nhập theo đoán, nên xem lại ('+rep.guess.length+')</div><div class="imlist" id="imp-guess">'+rep.guess.map(x=>'<div>• '+esc(x)+'</div>').join('')+'</div>':''),null,null);
+}
+ACT.impTpl=()=>{ const bs=DB.behaviors.filter(b=>b.code&&bLive(b)).sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true})),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const rows=[['Mã KA','KA (để tham khảo)','Hành động','Nguồn (1–6)','Người liên quan','Hạn','Ghi chú']]; bs.forEach(b=>{ rows.push([b.code,b.name,'','','','','']); rows.push([b.code,'','','','','','']); });
+  rows.push([]); rows.push(['Nguồn: 1 Động lực cá nhân · 2 Năng lực cá nhân · 3 Động lực xã hội · 4 Năng lực xã hội · 5 Động lực cấu trúc · 6 Năng lực cấu trúc']);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'})); a.download='Mau_HanhDong_6_nguon.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Đã tải file mẫu','ok'); };
+$('xlsx-file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) impReadFile(f); });
 
 boot();
 </script>
