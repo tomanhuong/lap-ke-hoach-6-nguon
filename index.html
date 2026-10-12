@@ -351,6 +351,28 @@ select.fi option { background: #2B296D; color: #fff; }
 .wds { display: flex; gap: 6px; flex-wrap: wrap; }
 .wd { border: 1px solid var(--b1); border-radius: 6px; padding: 6px 9px; font-size: 12px; font-family: 'Space Mono', monospace; font-weight: bold; color: var(--t3); cursor: pointer; background: rgba(0,0,0,0.2); }
 .wd.on { border-color: var(--wa); color: var(--wa); background: var(--wag); }
+/* tổng quan O → KR → KA */
+.ovk { margin-top: 12px; padding: 10px 12px; border-radius: var(--rs); background: rgba(0,0,0,0.2); border: 1px solid var(--b1); cursor: pointer; }
+.ova { display: flex; align-items: center; gap: 10px; margin: 6px 0 0 14px; padding: 7px 10px; border-left: 2px solid var(--b2); cursor: pointer; }
+.ovn { font-weight: 600; font-size: 14px; line-height: 1.35; color: var(--t1); }
+.ovv { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.ovs { font-size: 12px; color: var(--t3); margin-top: 5px; font-family: 'Space Mono', monospace; }
+/* phân tích: ba phần; rà soát tuần; chốt chu kỳ */
+.seg { display: flex; gap: 4px; margin-bottom: 18px; background: rgba(0,0,0,0.25); border: 1px solid var(--b1); border-radius: 10px; padding: 4px; }
+.sgb { flex: 1; background: transparent; border: none; border-radius: 7px; color: var(--t2); font-family: 'Space Mono', monospace; font-size: 12px; font-weight: bold; padding: 10px 2px; cursor: pointer; }
+.sgb.on { background: var(--p); color: #000; }
+.wkn { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.wkt { flex: 1; text-align: center; font-family: 'Space Mono', monospace; font-weight: 700; color: var(--p); font-size: 15px; }
+.wks { font-size: 11.5px; color: var(--t3); font-weight: 400; margin-top: 2px; }
+.mb[disabled] { opacity: .3; cursor: default; }
+.wka { margin: 0 0 6px 14px; padding: 0 10px 8px; border-left: 2px solid var(--wa); }
+.wka .cvs { margin-top: 4px; }
+.pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.clip2 { font-size: 13px; color: var(--t2); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.clr { display: grid; grid-template-columns: 84px 1fr; gap: 10px; margin-top: 8px; }
+textarea.fi { resize: vertical; line-height: 1.45; }
+.dt { margin: 0 0 16px; }
+.dt summary { cursor: pointer; color: var(--t2); text-decoration: underline; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -419,9 +441,10 @@ const RH={daily:'Mỗi ngày',weekly:'Mỗi tuần',event:'Theo sự kiện',mul
 const KK={sum:'Cộng dồn',list:'Tích theo danh sách',ka:'Lấy từ KA'};
 const WD=['CN','T2','T3','T4','T5','T6','T7'];
 const TYPES=['projects','goals','items','logs','behaviors','checkins','actions'];
+const RVG='_tuan';                    // bản rà soát tuần được lưu chung trong bảng logs với gid này, để kho dữ liệu không phải đổi gì
 const NUMF={goals:['target','weight'],items:['ord'],logs:['value'],behaviors:['quota'],actions:['source']};
-const BOOLF={items:['done'],behaviors:['habit']};
-const DATEF={projects:['start_date','end_date','created','archived_at'],goals:['start_date','deadline'],items:['date'],logs:['date'],checkins:['date'],actions:['deadline']};
+const BOOLF={items:['done'],goals:['archived'],behaviors:['habit','archived']};
+const DATEF={projects:['start_date','end_date','created','archived_at','closed_at'],goals:['start_date','deadline','archived_at'],behaviors:['archived_at','created'],items:['date'],logs:['date'],checkins:['date'],actions:['deadline']};
 
 /* ---------------- tiện ích ---------------- */
 const $=id=>document.getElementById(id);
@@ -472,7 +495,7 @@ const K={data:'gah2_data',out:'gah2_outbox',ui:'gah2_ui',pwd:'gah2_pwd',url:'gah
 let DB=normDB({});
 let OUT=[];                          // hàng chờ gửi lên kho, được lưu xuống máy
 let SEQ=0;
-let UI={pids:[],view:'today',asrc:0};
+let UI={pids:[],view:'today',asrc:0,asub:'ov'};
 let AUTH={pwd:'',url:API_URL,local:false};
 const OPEN=new Set();                // các thẻ đang mở, giữ nguyên khi vẽ lại
 let MCB=null,MDEL=null;
@@ -577,7 +600,7 @@ function logout(){
 function enterApp(){ $('login-screen').style.display='none'; $('app').style.display='flex'; fixUI(); swV(UI.view,true); setSync(); }
 function boot(){
   DB=normDB(LS.get(K.data,{})); OUT=(LS.get(K.out,[])||[]).filter(o=>o&&o.type&&o.id); OUT.forEach(o=>{ SEQ=Math.max(SEQ,o.k||0); });
-  const u=LS.get(K.ui,null); if(u&&typeof u==='object'){ UI.pids=Array.isArray(u.pids)?u.pids.map(String):[]; UI.view=['today','goals','behav','actions','analyze'].includes(u.view)?u.view:'today'; UI.asrc=Math.min(6,Math.max(0,Math.round(num(u.asrc)))); }
+  const u=LS.get(K.ui,null); if(u&&typeof u==='object'){ UI.pids=Array.isArray(u.pids)?u.pids.map(String):[]; UI.view=['today','goals','behav','actions','analyze'].includes(u.view)?u.view:'today'; UI.asrc=Math.min(6,Math.max(0,Math.round(num(u.asrc)))); UI.asub=['ov','wk','cl'].includes(u.asub)?u.asub:'ov'; }
   AUTH.url=API_URL||LS.get(K.url,'')||''; AUTH.pwd=LS.get(K.pwd,'')||''; AUTH.local=!!LS.get(K.local,false);
   if(AUTH.local){ enterApp(); return; }
   if(AUTH.url&&AUTH.pwd){ enterApp(); if(OUT.length) flush(); else pull(false); return; }   // mở ngay bằng bản lưu trên máy, kho kiểm mật khẩu ở lần gọi đầu
@@ -592,9 +615,12 @@ const A=id=>DB.actions.find(x=>x.id===id);
 const bPid=b=>{const g=G(b.gid);return g?g.pid:(b.pid||'');};      // mã O luôn suy ra từ KR cha
 const aPid=a=>{const b=B(a.bid);return b?bPid(b):(a.pid||'');};
 const actP=()=>DB.projects.filter(p=>p.status!=='archived');
-const selGoals=()=>DB.goals.filter(g=>UI.pids.includes(g.pid));
-const selBehs=()=>DB.behaviors.filter(b=>UI.pids.includes(bPid(b)));
-const selActs=()=>DB.actions.filter(a=>UI.pids.includes(aPid(a)));
+const bLive=b=>!b.archived&&!(G(b.gid)&&G(b.gid).archived);      // KA ẩn khi chính nó hoặc KR cha được lưu trữ
+const aLive=a=>!(B(a.bid)&&!bLive(B(a.bid)));                     // hành động ẩn theo KA
+const liveGoals=pid=>DB.goals.filter(g=>g.pid===pid&&!g.archived);
+const selGoals=()=>DB.goals.filter(g=>!g.archived&&UI.pids.includes(g.pid));
+const selBehs=()=>DB.behaviors.filter(b=>bLive(b)&&UI.pids.includes(bPid(b)));
+const selActs=()=>DB.actions.filter(a=>aLive(a)&&UI.pids.includes(aPid(a)));
 function fixUI(){ const act=actP(); UI.pids=(UI.pids||[]).filter(id=>act.some(p=>p.id===id)); if(!UI.pids.length&&act.length) UI.pids=act.map(p=>p.id); }
 
 /* ---------------- KA: nhịp ---------------- */
@@ -622,6 +648,11 @@ function rate7(b){   // tỷ lệ giữ nhịp 7 ngày vừa qua (không tính h
   if(b.rhythm==='weekly'){ const w=addD(weekStart(t),-7); return f>addD(w,6)?null:Math.min(1,weekCount(b,w)/b.quota); }
   let due=0,done=0; for(let i=1;i<=7;i++){ const d=addD(t,-i); if(d<f||isRest(b,d)) continue; due++; if(dayDone(b,d)) done++; } return due?done/due:null;
 }
+function kaAdh(b){   // tỷ lệ giữ nhịp từ lần ghi nhận đầu tiên đến nay; ngày hoặc tuần đang dở không bị tính là thiếu
+  const f=firstDate(b),t=td(); if(!f||b.rhythm==='event') return null;
+  if(b.rhythm==='weekly'){ let w=weekStart(f),done=0,due=0; const cw=weekStart(t); while(w<cw){ done+=Math.min(b.quota,weekCount(b,w)); due+=b.quota; w=addD(w,7); } const c=Math.min(b.quota,weekCount(b,cw)); done+=c; due+=c; return due?done/due:null; }
+  let d=f,done=0,due=0; while(d<=t){ if(dayDone(b,d)){ done++; due++; } else if(d<t&&!isRest(b,d)) due++; d=addD(d,1); } return due?done/due:null;
+}
 function last7(b){ const t=td(), out=[]; for(let i=6;i>=0;i--){ const d=addD(t,-i); const n=dayCis(b,d).length; let c=''; if(b.rhythm==='multi'){ const k=daySlots(b,d); c=k>=slotsOf(b).length?'on':k>0?'pt':''; } else c=n>0?'on':''; if(!c&&isRest(b,d)&&b.rhythm!=='weekly'&&b.rhythm!=='event') c='rs'; out.push({d,c,n}); } return out; }
 
 /* ---------------- KR: kết quả ---------------- */
@@ -634,6 +665,7 @@ function gTarget(g){ if(g.kind==='list'&&!(g.target>0)) return DB.items.filter(i
 function gScore(g){ const t=gTarget(g); return t>0?Math.max(0,Math.min(1,gCur(g)/t)):0; }
 const gPct=g=>Math.round(gScore(g)*100);
 const oThr=p=>(p&&p.otype==='commit')?1:0.7;
+const thrL=p=>(p&&p.otype==='commit')?'1,0':'0,7';
 function tPct(g){ if(!g.start_date||!g.deadline) return null; const tot=dB(g.start_date,g.deadline); if(tot===null) return null; if(tot<=0) return 100; return Math.max(0,Math.min(100,Math.round(dB(g.start_date,td())/tot*100))); }
 function dL(g){ return g.deadline?dB(td(),g.deadline):null; }
 function gSt(g){
@@ -647,7 +679,7 @@ function gSt(g){
   if(gap>=-25) return {t:'wa',l:'Chậm '+(-gap)+'%'};
   return {t:'er',l:'Chậm '+(-gap)+'%'};
 }
-function pPct(pid){ const gs=DB.goals.filter(g=>g.pid===pid); if(!gs.length) return null; const W=gs.reduce((a,g)=>a+(g.weight>0?g.weight:0),0); if(W>0) return Math.round(gs.reduce((a,g)=>a+gPct(g)*(g.weight>0?g.weight:0),0)/W); return Math.round(gs.reduce((a,g)=>a+gPct(g),0)/gs.length); }
+function pPct(pid){ const gs=liveGoals(pid); if(!gs.length) return null; const W=gs.reduce((a,g)=>a+(g.weight>0?g.weight:0),0); if(W>0) return Math.round(gs.reduce((a,g)=>a+gPct(g)*(g.weight>0?g.weight:0),0)/W); return Math.round(gs.reduce((a,g)=>a+gPct(g),0)/gs.length); }
 function allPct(){ const xs=UI.pids.map(pPct).filter(x=>x!==null); return xs.length?Math.round(xs.reduce((a,b)=>a+b,0)/xs.length):null; }
 function overall(){ const gs=selGoals(); if(!gs.length) return {c:'nd',l:'Chưa có KR'}; const st=gs.map(gSt); if(st.some(s=>s.t==='er')) return {c:'er',l:'Có KR cần xử lý ngay'}; if(st.some(s=>s.t==='wa')) return {c:'wa',l:'Có KR đang chậm'}; return {c:'ok',l:'Đúng kế hoạch'}; }
 
@@ -658,7 +690,8 @@ function coverStrip(b){ return '<div class="cvs">'+cover(b).map(x=>'<div class="
 
 /* ---------------- cảnh báo, mỗi cảnh báo chỉ về nguồn cần bổ sung ---------------- */
 function warns(){
-  const gs=selGoals(),bs=selBehs(),as=selActs(),ws=[],t=td(),multi=UI.pids.length>1;
+  const open=pid=>!isClosed(P(pid)),gs=selGoals().filter(g=>open(g.pid)),bs=selBehs().filter(b=>open(bPid(b))),as=selActs().filter(a=>open(aPid(a))),ws=[],t=td(),multi=UI.pids.length>1;
+  UI.pids.forEach(pid=>{ const p=P(pid); if(p&&p.end_date&&p.end_date<t&&!isClosed(p)) ws.push({lv:'wa',ic:'🏁',t:'O đã hết chu kỳ '+dB(p.end_date,t)+' ngày: '+p.name,d:'Chốt chu kỳ: tự chấm điểm từng KR, ghi câu chuyện sau con số và bài học.',pri:7,pid:p.id}); });
   const pn=pid=>multi&&P(pid)?'['+P(pid).name+'] ':'';
   gs.forEach(g=>{
     const st=gSt(g),rp=gPct(g),dl=dL(g),kas=bs.filter(b=>b.gid===g.id);
@@ -685,10 +718,52 @@ function warns(){
   return ws.sort((x,y)=>y.pri-x.pri);
 }
 
+/* ---------------- theo tuần: số liệu cho rà soát tuần ---------------- */
+const reviews=()=>DB.logs.filter(l=>l.gid===RVG&&/^\d{4}-\d{2}-\d{2}$/.test(l.date)).sort((a,b)=>b.date.localeCompare(a.date));
+const reviewOf=ws=>DB.logs.find(l=>l.gid===RVG&&l.date===ws);
+const wkLabel=ws=>fd(ws)+' – '+fd(addD(ws,6));
+function dueWeek(){ const t=td(),cw=weekStart(t),dow=pd(t).getDay(); if(dow===5||dow===6||dow===0) return cw; const pw=addD(cw,-7); return reviewOf(pw)?cw:pw; }   // thứ Sáu đến Chủ nhật: tuần này; đầu tuần: tuần trước nếu chưa rà soát
+function kaStart(b){ const f=firstDate(b),c=b.created||''; return c&&f?(c<f?c:f):(c||f); }
+function kaWeek(b,ws){   // việc làm KA trong một tuần; due=null với KA theo sự kiện; hôm nay chưa ghi thì chưa tính là thiếu
+  const we=addD(ws,6),t=td(),last=we<t?we:t,s=kaStart(b);
+  if(b.rhythm==='event') return {done:DB.checkins.filter(c=>c.bid===b.id&&c.date>=ws&&c.date<=we).length,due:null};
+  if(s&&s>we) return {done:0,due:0};
+  if(b.rhythm==='weekly') return {done:Math.min(b.quota,weekCount(b,ws)),due:b.quota};
+  let done=0,due=0; for(let d=s&&s>ws?s:ws;d<=last;d=addD(d,1)){ if(dayDone(b,d)){ done++; due++; } else if(d<t&&!isRest(b,d)) due++; }
+  return {done,due};
+}
+function krWeek(g,ws){   // KR nhích bao nhiêu trong tuần
+  const we=addD(ws,6),inW=d=>d>=ws&&d<=we;
+  if(g.kind==='list') return DB.items.filter(i=>i.gid===g.id&&i.done&&inW(i.date)).length;
+  if(g.kind==='ka'){ const b=B(g.link_bid); if(!b) return 0; if(g.link_mode==='days'){ let n=0; for(let i=0;i<7;i++) if(dayDone(b,addD(ws,i))) n++; return n; } return DB.checkins.filter(c=>c.bid===b.id&&inW(c.date)).length; }
+  return Math.round(DB.logs.filter(l=>l.gid===g.id&&inW(l.date)).reduce((a,l)=>a+num(l.value),0)*1e6)/1e6;
+}
+const runPs=()=>DB.projects.filter(p=>p.status!=='archived'&&!p.closed_at);       // O đang chạy và chưa chốt
+const liveP=pid=>{const p=P(pid);return !!p&&p.status!=='archived'&&!p.closed_at;};
+const allGoals=()=>DB.goals.filter(g=>!g.archived&&liveP(g.pid));
+const allBehs=()=>DB.behaviors.filter(b=>bLive(b)&&liveP(bPid(b)));
+function totPct(){ const xs=runPs().map(p=>pPct(p.id)).filter(x=>x!==null); return xs.length?Math.round(xs.reduce((a,c)=>a+c,0)/xs.length):null; }
+function weekSum(ws){
+  let done=0,due=0; allBehs().filter(b=>!b.habit).forEach(b=>{ const k=kaWeek(b,ws); if(k.due){ done+=k.done; due+=k.due; } });
+  const gs=allGoals(); return {done,due,rate:due?done/due:null,krs:gs.length,moved:gs.filter(g=>krWeek(g,ws)>0).length,blk:DB.actions.filter(a=>aLive(a)&&liveP(aPid(a))&&a.status==='blocked').length,pct:totPct()};
+}
+
+/* ---------------- chốt chu kỳ: điểm tự chấm ---------------- */
+const sc01=v=>{ const s=String(v==null?'':v).trim(); return s===''?null:Math.max(0,Math.min(1,num(s))); };
+const r2=x=>Math.round(x*100)/100;
+const isClosed=p=>!!(p&&p.closed_at);
+function oScore(pid,pick){   // điểm của O: trung bình điểm KR theo trọng số, cùng cách tính với % của O
+  const gs=liveGoals(pid); if(!gs.length) return null; const f=g=>{ const v=pick?pick(g):null; return v===null||v===undefined?gScore(g):v; };
+  const W=gs.reduce((a,g)=>a+(g.weight>0?g.weight:0),0);
+  return W>0?gs.reduce((a,g)=>a+f(g)*(g.weight>0?g.weight:0),0)/W:gs.reduce((a,g)=>a+f(g),0)/gs.length;
+}
+const oFinal=p=>sc01(p&&p.final_score);
+const passed=(p,sc)=>sc!==null&&r2(sc)>=oThr(p);
+
 /* ============================================================
    GIAO DIỆN
    ============================================================ */
-const ACT={},CHG={};
+const ACT={},CHG={},INP={};
 let CFM=null,BF=null;
 
 function toast(msg,type){ const box=$('toasts'); while(box.children.length>=2) box.firstChild.remove(); const t=document.createElement('div'); t.className='toast '+(type||'ok'); t.textContent=({ok:'✓',er:'✕',wa:'⚠'}[type||'ok']||'')+'  '+msg; $('toasts').appendChild(t); setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';},2600); setTimeout(()=>t.remove(),3000); }
@@ -699,9 +774,9 @@ function confirmBox(title,sub,btns){
 }
 function askDel(title,sub,f){ confirmBox(title,sub||'Thao tác này không hoàn tác được.',[{l:'Không',c:'bs'},{l:'Xóa',c:'bd',f}]); }
 function afterModal(){ if(renderPending&&!isBusy()){ renderPending=false; render(); } }
-function oMod(title,body,save,delf,saveLabel){
+function oMod(title,body,save,delf,saveLabel,delLabel){
   $('mt').textContent=title; $('mb').innerHTML=body;
-  $('mbdel').style.display=delf?'block':'none'; $('mbok').style.display=save?'block':'none'; $('mbok').textContent=saveLabel||'LƯU LẠI'; $('mbcan').textContent=save?'Hủy':'Đóng';
+  $('mbdel').style.display=delf?'block':'none'; $('mbdel').textContent=delLabel||'Xóa'; $('mbok').style.display=save?'block':'none'; $('mbok').textContent=saveLabel||'LƯU LẠI'; $('mbcan').textContent=save?'Hủy':'Đóng';
   $('mo').classList.add('on'); MCB=save||null; MDEL=delf||null;
   if(window.innerWidth>700) setTimeout(()=>{ const f=document.querySelector('#mb input:not([type=hidden]):not([type=checkbox]):not([type=date]),#mb textarea'); if(f) f.focus(); },150);
 }
@@ -724,14 +799,15 @@ const togBtn=id=>'<button class="tog'+(OPEN.has(id)?' open':'')+'" data-a="tog" 
 ACT.tog=(id,v,el)=>{ const p=$(id); if(!p) return; const on=p.classList.toggle('show'); el.classList.toggle('open',on); if(on)OPEN.add(id); else OPEN.delete(id); };
 ACT.more=id=>{ if(OPEN.has(id))OPEN.delete(id); else OPEN.add(id); render(); };
 const stat=(n,l)=>'<div class="thi"><div class="n tp">'+n+'</div><div class="l">'+l+'</div></div>';
-const oBar=(p,extra)=>'<div style="padding:10px 14px;background:var(--c2);border-left:4px solid var(--p);border-radius:var(--rs);margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><div style="font-weight:bold;color:var(--p);overflow:hidden;text-overflow:ellipsis">📁 '+esc(p.name)+'</div><div style="font-size:12px;color:var(--t3)">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+'</div></div>'+(extra||'')+'</div>';
+const oBar=(p,extra)=>'<div style="padding:10px 14px;background:var(--c2);border-left:4px solid var(--p);border-radius:var(--rs);margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><div style="font-weight:bold;color:var(--p);overflow:hidden;text-overflow:ellipsis">📁 '+esc(p.name)+'</div><div style="font-size:12px;color:var(--t3)">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div>'+(extra||'')+'</div>';
 function noSel(ic){
   if(!actP().length) return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa có O nào</h3><p>O là mục tiêu của một vai trò trong chu kỳ. Tạo O đầu tiên để bắt đầu.</p><button class="abtn" data-a="newP">＋ TẠO O ĐẦU TIÊN</button></div>';
   return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa chọn O</h3><p>Chọn O muốn xem.</p><button class="abtn" data-a="oProj">CHỌN O</button></div>';
 }
-function wcard(w){ const btn=w.aid?'<button class="mb" data-a="eAct" data-id="'+esc(w.aid)+'">Mở</button>':w.gid?'<button class="mb" data-a="goG" data-id="'+esc(w.gid)+'">Xem</button>':w.bid?'<button class="mb" data-a="goB" data-id="'+esc(w.bid)+'">Xem</button>':''; return '<div class="wi '+w.lv+'"><div class="wig">'+w.ic+'</div><div class="wib"><div class="wit">'+esc(w.t)+'</div><div class="wid">'+esc(w.d)+'</div></div>'+btn+'</div>'; }
-ACT.goG=id=>{ OPEN.add('gd-'+id); swV('goals'); const e=$('gd-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
-ACT.goB=id=>{ OPEN.add('bn-'+id); swV('behav'); const e=$('bn-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
+function wcard(w){ const btn=w.pid?'<button class="mb p" data-a="closeO" data-id="'+esc(w.pid)+'">Chốt</button>':w.aid?'<button class="mb" data-a="eAct" data-id="'+esc(w.aid)+'">Mở</button>':w.gid?'<button class="mb" data-a="goG" data-id="'+esc(w.gid)+'">Xem</button>':w.bid?'<button class="mb" data-a="goB" data-id="'+esc(w.bid)+'">Xem</button>':''; return '<div class="wi '+w.lv+'"><div class="wig">'+w.ic+'</div><div class="wib"><div class="wit">'+esc(w.t)+'</div><div class="wid">'+esc(w.d)+'</div></div>'+btn+'</div>'; }
+const showP=pid=>{ if(pid&&P(pid)&&P(pid).status!=='archived'&&!UI.pids.includes(pid)) UI.pids.push(pid); };
+ACT.goG=id=>{ const g0=G(id); if(g0) showP(g0.pid); OPEN.add('gd-'+id); swV('goals'); const e=$('gd-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
+ACT.goB=id=>{ const b0=B(id); if(b0) showP(bPid(b0)); OPEN.add('bn-'+id); swV('behav'); const e=$('bn-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
 
 /* ---------------- ghi nhận KA theo nhịp ---------------- */
 function kaCtl(b,d){
@@ -788,6 +864,7 @@ VIEWS.today=function(){
   if(!gs.length) h+='<div class="wi wa"><div class="wig">🎯</div><div class="wib"><div class="wit">Bước 1: đặt KR</div><div class="wid">Mỗi O cần vài kết quả then chốt đo được.</div></div><button class="mb p" data-a="newG">＋ KR</button></div>';
   else if(!bsAll.length) h+='<div class="wi wa"><div class="wig">💡</div><div class="wib"><div class="wit">Bước 2: chọn KA cho từng KR</div><div class="wid">KA là hành vi then chốt, làm đều thì KR nhích.</div></div><button class="mb p" data-a="newB">＋ KA</button></div>';
   else if(!as.length) h+='<div class="wi wa"><div class="wig">⚡</div><div class="wib"><div class="wit">Bước 3: lập hành động theo 6 nguồn</div><div class="wid">Chạm vào ô nguồn còn trống dưới mỗi KA để thêm hành động.</div></div><button class="mb p" data-a="tab" data-id="behav">Mở KA</button></div>';
+  h+=rvCard();
   if(sched.length){
     h+='<div class="ts-sec"><div class="sl">💡 KA hôm nay</div>';
     sched.slice().sort((a,b)=>(dueToday(a)?0:1)-(dueToday(b)?0:1)).forEach(b=>{ const g=G(b.gid),rest=b.rhythm!=='weekly'&&isRest(b,t),due=dueToday(b);
@@ -813,12 +890,13 @@ VIEWS.today=function(){
 VIEWS.goals=function(){
   const el=$('c-goals'); if(!UI.pids.length){ el.innerHTML=noSel('🎯'); return; }
   let h='<div class="adr"><div class="sl" style="margin:0">Kết quả then chốt (KR)</div><button class="abtn" data-a="newG">＋ KR</button></div>';
-  UI.pids.forEach(pid=>{ const p=P(pid); if(!p) return; const gs=DB.goals.filter(g=>g.pid===pid),pp=pPct(pid),thr=oThr(p),ok=pp!==null&&pp/100>=thr;
-    h+=oBar(p,'<div style="text-align:right;flex-shrink:0;font-family:\'Space Mono\',monospace"><div style="font-weight:bold;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':fmt(pp/100))+'</div><div style="font-size:11px;color:var(--t3)">đạt ở '+fmt(thr)+'</div></div>');
+  UI.pids.forEach(pid=>{ const p=P(pid); if(!p) return; const gs=liveGoals(pid),ar=DB.goals.filter(g=>g.pid===pid&&g.archived),pp=pPct(pid),thr=oThr(p),ok=pp!==null&&pp/100>=thr;
+    h+=oBar(p,'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0"><div style="text-align:right;font-family:\'Space Mono\',monospace"><div style="font-weight:bold;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':fmt(pp/100))+'</div><div style="font-size:11px;color:var(--t3)">đạt ở '+fmt(thr)+'</div></div><button class="mb" style="padding:6px 9px" data-a="closeO" data-id="'+esc(p.id)+'" title="Chốt chu kỳ, chấm điểm">🏁</button><button class="mb" style="padding:6px 9px" data-a="eProj" data-id="'+esc(p.id)+'" title="Sửa, lưu trữ hoặc xóa O">✏️</button></div>');
     if(p.desc) h+='<div class="hint" style="margin:-4px 0 12px">'+esc(p.desc)+'</div>';
-    if(!gs.length){ h+='<div class="card" style="text-align:center;color:var(--t3);font-style:italic">O này chưa có KR nào.</div>'; return; }
+    if(!gs.length) h+='<div class="card" style="text-align:center;color:var(--t3);font-style:italic">O này chưa có KR nào đang chạy.</div>';
     const W=gs.reduce((a,g)=>a+(g.weight>0?g.weight:0),0); if(W>0&&gs.some(g=>!(g.weight>0))) h+='<div class="hint" style="margin-bottom:10px">Có KR chưa đặt trọng số nên không được tính vào điểm của O. Đặt đủ, hoặc bỏ trống hết để chia đều.</div>';
-    gs.forEach(g=>{ h+=gCard(g,p); }); });
+    gs.forEach(g=>{ h+=gCard(g,p); });
+    if(ar.length){ const k='arg-'+pid; h+='<button class="lnk" data-a="more" data-id="'+esc(k)+'" style="margin:0 0 8px">📦 KR đã lưu trữ ('+ar.length+') '+(OPEN.has(k)?'▲':'▼')+'</button>'; if(OPEN.has(k)) h+=ar.map(g=>arcRow('🎯 '+g.name,gPct(g)+'%'+(g.archived_at?' · lưu trữ '+fd(g.archived_at):''),'unG','dGoal',g.id)).join(''); } });
   el.innerHTML=h;
 };
 function gCard(g,p){
@@ -831,7 +909,7 @@ function gCard(g,p){
   if(g.kind==='sum'){ const ls=DB.logs.filter(l=>l.gid===g.id).sort((a,b)=>(b.date+b.updatedAt).localeCompare(a.date+a.updatedAt)),all=OPEN.has('lg-'+g.id),sh=all?ls:ls.slice(0,5);
     d+=sh.map(l=>'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b1);font-size:13px"><span style="color:var(--t3);font-family:\'Space Mono\',monospace;width:44px;flex-shrink:0;font-size:11px">'+fd(l.date)+'</span><span style="color:var(--p);font-weight:bold;font-family:\'Space Mono\',monospace">+'+fmt(l.value)+'</span><span style="flex:1;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.note)+'</span><button class="mb er" data-a="delLog" data-id="'+esc(l.id)+'" style="padding:4px 8px;font-size:11px">✕</button></div>').join('');
     if(ls.length>5) d+='<button class="lnk" data-a="more" data-id="lg-'+id+'" style="margin-top:8px">'+(all?'Thu gọn':'Xem tất cả '+ls.length+' dòng')+'</button>'; }
-  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="newB" data-id="'+id+'">＋ Thêm KA</button><button class="mb" data-a="eGoal" data-id="'+id+'">✏️ Sửa KR</button><button class="mb er" data-a="dGoal" data-id="'+id+'">🗑 Xóa</button></div>';
+  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="newB" data-id="'+id+'">＋ Thêm KA</button><button class="mb" data-a="eGoal" data-id="'+id+'">✏️ Sửa</button><button class="mb" data-a="arcG" data-id="'+id+'">📦 Lưu trữ</button><button class="mb er" data-a="dGoal" data-id="'+id+'">🗑 Xóa</button></div>';
   return h+nest(nid,d)+'</div>';
 }
 
@@ -840,13 +918,16 @@ VIEWS.behav=function(){
   const el=$('c-behav'); if(!UI.pids.length){ el.innerHTML=noSel('💡'); return; }
   const bs=selBehs(),multi=UI.pids.length>1;
   let h='<div class="adr"><div class="sl" style="margin:0">Hành vi then chốt (KA)</div><button class="abtn" data-a="newB">＋ KA</button></div>';
-  if(!bs.length){ el.innerHTML=h+'<div class="empty"><div class="ei">💡</div><h3>Chưa có KA</h3><p>KA là cầu nối giữa kết quả và hành động: làm đều thì KR nhích.</p></div>'; return; }
+  const arB=DB.behaviors.filter(b=>b.archived&&!(G(b.gid)&&G(b.gid).archived)&&UI.pids.includes(bPid(b)));
+  const arSec=()=>{ if(!arB.length) return ''; const k='arb'; return '<button class="lnk" data-a="more" data-id="'+k+'" style="margin:8px 0">📦 KA đã lưu trữ ('+arB.length+') '+(OPEN.has(k)?'▲':'▼')+'</button>'+(OPEN.has(k)?arB.map(b=>arcRow('💡 '+b.name,(G(b.gid)?'🎯 '+G(b.gid).name:'')+(b.archived_at?' · lưu trữ '+fd(b.archived_at):''),'unB','dBeh',b.id)).join(''):''); };
+  if(!bs.length){ el.innerHTML=h+'<div class="empty"><div class="ei">💡</div><h3>Chưa có KA đang chạy</h3><p>KA là cầu nối giữa kết quả và hành động: làm đều thì KR nhích.</p></div>'+arSec(); return; }
   UI.pids.forEach(pid=>{ const p=P(pid); if(!p) return; const gs=DB.goals.filter(g=>g.pid===pid&&bs.some(b=>b.gid===g.id)); if(!gs.length) return; if(multi) h+=oBar(p);
     gs.forEach(g=>{ h+='<div style="margin-bottom:22px"><div class="sl" style="color:var(--t3);margin-bottom:10px">🎯 '+esc(g.name)+' <span class="badge '+(gSt(g).t==='on'||gSt(g).t==='nd'?'p':gSt(g).t)+'">'+gPct(g)+'%</span></div>'+bs.filter(b=>b.gid===g.id).map(bCard).join('')+'</div>'; }); });
-  const orph=DB.behaviors.filter(b=>!G(b.gid)&&(UI.pids.includes(b.pid||'')||!P(b.pid||'')));
+  const orph=DB.behaviors.filter(b=>!b.archived&&!G(b.gid)&&(UI.pids.includes(b.pid||'')||!P(b.pid||'')));
   if(orph.length) h+='<div class="sl" style="color:var(--wa);margin:22px 0 10px">⚠️ KA chưa gắn KR</div><div class="hint" style="margin:-4px 0 10px">Bấm Sửa để gắn vào một KR, hoặc xóa.</div>'+orph.map(bCard).join('');
-  el.innerHTML=h;
+  el.innerHTML=h+arSec();
 };
+const arcRow=(name,sub,un,dl,id)=>'<div class="ni dim" style="display:flex;align-items:center;gap:10px"><div class="f1"><div style="font-weight:bold;font-size:14px">'+esc(name)+'</div><div style="font-size:12px;color:var(--t3)">'+esc(sub)+'</div></div><button class="mb ok" style="padding:6px 10px;font-size:11px" data-a="'+un+'" data-id="'+esc(id)+'">Khôi phục</button><button class="mb er" style="padding:6px 10px;font-size:11px" data-a="'+dl+'" data-id="'+esc(id)+'">Xóa</button></div>';
 function bCard(b){
   const id=esc(b.id),nid='bn-'+b.id,t=td(),done=!dueToday(b)&&b.rhythm!=='event',as=DB.actions.filter(a=>a.bid===b.id),blk=as.filter(a=>a.status==='blocked').length,str=streak(b);
   const rl=RH[b.rhythm]+(b.rhythm==='weekly'?' · '+b.quota+' lần':'')+(b.rhythm==='multi'?' · '+slotsOf(b).length+' lần':'')+((b.rhythm==='daily'||b.rhythm==='multi')&&restSet(b).size?' · nghỉ '+[...restSet(b)].sort().map(i=>WD[i]).join(', '):'');
@@ -854,14 +935,14 @@ function bCard(b){
   if(b.rhythm!=='event') h+='<div class="d7s">'+last7(b).map(x=>'<div class="d7 '+x.c+'" title="'+fd(x.d)+'">'+WD[pd(x.d).getDay()]+(b.rhythm==='weekly'&&x.n>1?'·'+x.n:'')+'</div>').join('')+'</div>';
   let d=(b.desc?'<div class="hint" style="margin:0 0 10px;font-size:13.5px">'+esc(b.desc)+'</div>':'')+'<div class="strow"><div class="sb3"><div class="sb3n" style="color:'+(str?'var(--p)':'var(--t3)')+'">'+str+'</div><div class="sb3l">'+(b.rhythm==='weekly'?'Tuần đạt liền':'Chuỗi ngày')+'</div></div><div class="sb3"><div class="sb3n tp">'+(b.rhythm==='multi'?fullDays(b):cisOf(b.id).length)+'</div><div class="sb3l">'+(b.rhythm==='multi'?'Ngày làm đủ':'Tổng lần')+'</div></div><div class="sb3"><div class="sb3n" style="color:'+(blk?'var(--er)':'var(--t1)')+'">'+as.length+'</div><div class="sb3l">Hành động'+(blk?' · '+blk+' chặn':'')+'</div></div></div>';
   const ms=[['Mốc 1 · thử',b.m1],['Mốc 2 · bỏ cái thừa',b.m2],['Mốc 3 · thành nếp',b.m3]].filter(x=>x[1]); if(ms.length) d+='<div style="margin-top:12px;font-size:13.5px;color:var(--t2)">'+ms.map(x=>'<div><span style="color:var(--t3)">'+x[0]+':</span> '+esc(x[1])+'</div>').join('')+'</div>';
-  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="addAct" data-id="'+id+'">＋ Hành động</button><button class="mb" data-a="bf" data-id="'+id+'">📅 Ngày khác</button><button class="mb" data-a="eBeh" data-id="'+id+'">✏️ Sửa KA</button><button class="mb er" data-a="dBeh" data-id="'+id+'">🗑 Xóa</button></div>';
+  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="addAct" data-id="'+id+'">＋ Hành động</button><button class="mb" data-a="bf" data-id="'+id+'">📅 Ngày khác</button><button class="mb" data-a="eBeh" data-id="'+id+'">✏️ Sửa</button><button class="mb" data-a="arcB" data-id="'+id+'">📦 Lưu trữ</button><button class="mb er" data-a="dBeh" data-id="'+id+'">🗑 Xóa</button></div>';
   return h+nest(nid,d)+'</div>';
 }
 
 /* ---------------- HÀNH ĐỘNG 6 NGUỒN ---------------- */
 VIEWS.actions=function(){
   const el=$('c-actions'); if(!UI.pids.length){ el.innerHTML=noSel('⚡'); return; }
-  const all=selActs().concat(DB.actions.filter(a=>!B(a.bid)&&!P(a.pid||''))),multi=UI.pids.length>1;
+  const all=selActs().concat(DB.actions.filter(a=>!B(a.bid)&&!P(a.pid||''))),multi=UI.pids.length>1;   // kèm hành động mồ côi của bản cũ
   const chips='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:12px;scrollbar-width:none">'+['Tất cả'].concat(SRC.map(s=>s.e+' '+s.n)).map((l,i)=>'<div class="qc" style="white-space:nowrap;'+(UI.asrc===i?'border-color:var(--p);background:var(--pg);color:var(--p)':'')+'" data-a="asrc" data-v="'+i+'">'+l+'</div>').join('')+'</div>';
   const as=UI.asrc>0?all.filter(a=>a.source===UI.asrc):all; let cards='';
   if(!as.length) cards='<div class="empty"><div class="ei">⚡</div><h3>Chưa có hành động</h3><p>Mỗi hành động đỡ một KA và thuộc 1 trong 6 nguồn ảnh hưởng.</p></div>';
@@ -880,19 +961,41 @@ ACT.dAct=id=>askDel('Xóa hành động này?','',()=>{ del('actions',id); commi
 
 /* ---------------- PHÂN TÍCH ---------------- */
 VIEWS.analyze=function(){
-  const el=$('c-analyze'); let h='';
+  const el=$('c-analyze'); let h=segBar();
+  if(UI.asub==='wk'){ el.innerHTML=h+reviewView(); return; }
+  if(UI.asub==='cl'){ el.innerHTML=h+closeView(); return; }
+  h+=overview();
   if(UI.pids.length){
-    const gs=selGoals(),bs=selBehs(),as=selActs(),pct=allPct(),ws=warns(),ov=overall();
-    h+='<div class="card"><div class="row"><div class="f1"><div class="tm" style="font-size:18px;color:var(--p)">'+(UI.pids.length===1?esc((P(UI.pids[0])||{}).name||''):'Tổng hợp '+UI.pids.length+' mục tiêu O')+'</div><div class="ts">'+gs.length+' KR · '+bs.length+' KA · '+as.length+' hành động</div></div><div style="text-align:right"><div class="mono tp" style="font-size:32px;font-weight:700">'+(pct===null?'—':pct+'%')+'</div></div></div>'+(pct!==null?'<div class="pb" style="height:8px;margin-top:12px"><div class="pf '+(ov.c==='nd'?'p':ov.c)+'" style="width:'+pct+'%"></div></div>':'')+'<div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;font-family:\'Space Mono\',monospace;font-size:13px;font-weight:600"><span style="color:var(--er)">🚨 '+ws.filter(w=>w.lv==='er').length+' cần xử lý</span><span style="color:var(--wa)">⚠️ '+ws.filter(w=>w.lv==='wa').length+' chú ý</span><span style="color:var(--ok)">✅ '+as.filter(a=>a.status==='done').length+'/'+as.length+' xong</span></div></div>';
-    h+='<div class="sl" style="margin:20px 0 12px">Độ phủ 6 nguồn theo từng KA</div>';
+    const gs=selGoals(),bs=selBehs(),as=selActs(),ws=warns();
+    h+='<div class="sl" style="margin:26px 0 12px">Độ phủ 6 nguồn theo từng KA</div>';
     if(!bs.length) h+='<div class="hint">Chưa có KA nào.</div>';
     else { h+='<div class="hint" style="margin:-6px 0 10px">Chạm vào một ô để thêm hành động cho nguồn đó.</div>'; bs.forEach(b=>{ const g=G(b.gid); h+='<div class="ni"><div style="font-weight:bold;font-size:14px">💡 '+esc(b.name)+'</div><div style="font-size:12px;color:var(--t3)">🎯 '+esc(g?g.name:'chưa gắn KR')+'</div>'+coverStrip(b)+'</div>'; }); }
     h+='<div class="sl" style="margin:24px 0 12px">Cảnh báo</div>'+(ws.length?ws.map(wcard).join(''):'<div class="wi ok"><div class="wig">🎉</div><div class="wib"><div class="wit">Không có cảnh báo</div><div class="wid">KR đúng tiến độ, KA giữ nhịp, 6 nguồn đã phủ.</div></div></div>');
-  } else h+=noSel('📊');
+  } else if(!actP().length) h+=noSel('📊');
   const leg=legacyData();
   h+='<div class="sl" style="margin:32px 0 14px;border-top:1px dashed var(--b1);padding-top:22px;color:var(--ok)">⚙️ Hệ thống và dữ liệu</div><div class="card" style="display:flex;flex-direction:column;gap:12px"><p style="font-size:13.5px;color:var(--t2)">'+(AUTH.local?'Đang dùng trên máy này, chưa nối kho dữ liệu: dữ liệu chỉ nằm trong trình duyệt này.':'Kho dữ liệu: đã nối. '+(OUT.length?OUT.length+' thay đổi đang chờ gửi'+(syncErr?' (mất kết nối, sẽ tự gửi lại).':'.'):'Mọi thay đổi đã được gửi lên kho.')+(lastSync?' Lần đồng bộ gần nhất: '+new Date(lastSync).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+'.':''))+' Dữ liệu trên máy không được mã hóa; hãy tải bản sao lưu định kỳ.</p>'+(AUTH.local?'<button class="bp" data-a="connect">☁ Nối kho dữ liệu</button>':'')+'<button class="bp" style="background:rgba(253,185,19,.15);color:var(--p);border:1px solid var(--p)" data-a="backup">📥 Tải bản sao lưu (.json)</button><button class="bp" style="background:rgba(0,167,157,.15);color:var(--ok);border:1px solid var(--ok)" data-a="restore">📤 Khôi phục từ file</button>'+(leg?'<button class="bp" style="background:transparent;color:var(--t1);border:1px solid var(--b2)" data-a="impLegacy">📦 Nhập dữ liệu bản cũ trên máy này ('+leg.goals.length+' mục tiêu)</button>':'')+'<div style="border-top:1px solid var(--b1);margin:4px 0"></div><button class="bd" style="width:100%" data-a="logout">🔒 '+(AUTH.local?'Xóa dữ liệu và khóa':'Đăng xuất')+'</button></div>';
   el.innerHTML=h;
 };
+/* Tổng quan quản trị: mọi O đang chạy → KR → KA, kèm % hoàn thành; không phụ thuộc bộ lọc O đang xem */
+function overview(){
+  const os=actP(); if(!os.length) return '';
+  const gsAll=DB.goals.filter(g=>!g.archived&&os.some(p=>p.id===g.pid)),bsAll=DB.behaviors.filter(b=>bLive(b)&&os.some(p=>p.id===bPid(b))),asAll=DB.actions.filter(a=>aLive(a)&&os.some(p=>p.id===aPid(a)));
+  const xs=os.map(p=>pPct(p.id)).filter(x=>x!==null),tot=xs.length?Math.round(xs.reduce((a,c)=>a+c,0)/xs.length):null,c={d:0,o:0,w:0,e:0};
+  gsAll.forEach(g=>{ const s=gSt(g); if(gPct(g)>=100)c.d++; else if(s.t==='er')c.e++; else if(s.t==='wa')c.w++; else c.o++; });
+  const bar=(pct,cls,h8)=>'<div class="pb" style="margin-top:6px'+(h8?';height:8px':'')+'"><div class="pf '+cls+'" style="width:'+Math.max(0,Math.min(100,pct))+'%"></div></div>';
+  let h='<div class="card"><div class="row"><div class="f1"><div class="tm" style="font-size:18px;color:var(--p)">Tổng quan tất cả O</div><div class="ts">'+os.length+' O · '+gsAll.length+' KR · '+bsAll.length+' KA · '+asAll.length+' hành động</div></div><div style="text-align:right"><div class="mono tp" style="font-size:32px;font-weight:700">'+(tot===null?'—':tot+'%')+'</div></div></div>'+(tot!==null?bar(tot,'p',true):'')+'<div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;font-family:\'Space Mono\',monospace;font-size:12.5px;font-weight:600"><span style="color:var(--ok)">✅ '+c.d+' KR xong</span><span style="color:var(--p)">● '+c.o+' đúng tiến độ</span><span style="color:var(--wa)">⚠️ '+c.w+' chậm</span><span style="color:var(--er)">🚨 '+c.e+' cần xử lý</span></div></div>';
+  os.forEach(p=>{ const gs=liveGoals(p.id),pp=pPct(p.id),thr=oThr(p),ok=pp!==null&&pp/100>=thr;
+    h+='<div class="card n" style="padding:16px"><div class="row top"><div class="f1"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div><div class="ts" style="font-size:12.5px">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div><div style="text-align:right;flex-shrink:0;font-family:\'Space Mono\',monospace"><div style="font-size:20px;font-weight:700;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':pp+'%')+'</div><div style="font-size:10.5px;color:var(--t3)">'+(pp===null?'chưa có KR':fmt(pp/100)+' / đạt '+fmt(thr))+'</div></div></div>'+(pp!==null?bar(pp,ok?'ok':'p',true):'');
+    if(!gs.length) h+='<div class="hint">Chưa có KR đang chạy.</div>';
+    gs.forEach(g=>{ const st=gSt(g),gp=gPct(g),kas=DB.behaviors.filter(b=>b.gid===g.id&&!b.archived);
+      h+='<div class="ovk" data-a="goG" data-id="'+esc(g.id)+'"><div class="row" style="gap:8px"><div class="f1 ovn">🎯 '+esc(g.name)+'</div><span class="ovv t'+(st.t==='on'||st.t==='nd'?'p':st.t)+'">'+gp+'%</span></div>'+bar(gp,st.t)+'<div class="ovs">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · '+st.l+'</div></div>';
+      kas.forEach(b=>{ const ad=kaAdh(b),cv=cover(b).filter(x=>x.n>0).length;
+        h+='<div class="ova" data-a="goB" data-id="'+esc(b.id)+'"><div class="f1 ovn" style="font-size:13px">💡 '+esc(b.name)+'</div><div class="ovs" style="margin:0;text-align:right;flex-shrink:0">'+(b.habit?'đã thành nếp':ad===null?(b.rhythm==='event'?cisOf(b.id).length+' lần':'chưa ghi nhận'):'giữ nhịp <b style="color:var(--'+(ad>=.8?'ok':ad>=.5?'wa':'er')+')">'+Math.round(ad*100)+'%</b>')+' · <span style="color:var(--'+(cv===6?'ok':cv?'t2':'er')+')">'+cv+'/6 nguồn</span></div></div>'; });
+      if(!kas.length) h+='<div class="ova"><div class="ovs" style="margin:0;color:var(--wa)">Chưa có KA</div></div>'; });
+    h+='</div>'; });
+  const na=DB.projects.length-os.length; if(na) h+='<div class="hint" style="margin-top:-6px">'+na+' O đã lưu trữ không hiện ở đây.</div>';
+  return h;
+}
 ACT.backup=()=>{ if(!countDB(DB)) return toast('Chưa có dữ liệu để sao lưu','wa'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(Object.assign({app:'gay-anh-huong',version:2,saved:new Date().toISOString()},DB),null,1)],{type:'application/json'})); a.download='GayAnhHuong_'+td()+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Đã tải bản sao lưu','ok'); };
 ACT.restore=()=>$('restore-file').click();
 ACT.connect=()=>{ AUTH.fromLocal=countDB(DB)>0; showLock('Nhập địa chỉ kho và mật khẩu để nối. Dữ liệu trên máy vẫn được giữ.'); };
@@ -906,25 +1009,27 @@ function askMerge(fresh){ confirmBox('Kho đã có '+countDB(fresh)+' bản ghi,
 function projBody(){
   const act=actP(),arc=DB.projects.filter(p=>p.status==='archived');
   let h='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">👁️ CHỌN O ĐỂ XEM</div><div style="border:1px solid var(--b1);border-radius:var(--rs);padding:10px;margin-bottom:18px;background:rgba(0,0,0,0.2)">';
-  h+=act.length?act.map(p=>{const on=UI.pids.includes(p.id);return '<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;display:flex;align-items:center;gap:10px;border:1px solid '+(on?'var(--p)':'var(--b1)')+'"><div data-a="togP" data-id="'+esc(p.id)+'" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer"><div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(on?'var(--p)':'var(--t3)')+';background:'+(on?'var(--p)':'transparent')+';color:#000;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(on?'✓':'')+'</div><div style="min-width:0"><div style="font-weight:bold;color:'+(on?'var(--p)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</div><div style="font-size:11px;color:var(--t3)">'+[p.role,p.cycle].filter(Boolean).map(esc).join(' · ')+'</div></div></div><button class="mb" style="padding:6px 10px;font-size:11px" data-a="eProj" data-id="'+esc(p.id)+'">Sửa</button><button class="mb er" style="padding:6px 10px;font-size:11px" data-a="archP" data-id="'+esc(p.id)+'">Lưu trữ</button></div>';}).join(''):'<div class="hint" style="text-align:center">Chưa có O nào.</div>';
+  h+=act.length?act.map(p=>{const on=UI.pids.includes(p.id);return '<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;border:1px solid '+(on?'var(--p)':'var(--b1)')+'"><div data-a="togP" data-id="'+esc(p.id)+'" style="display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer"><div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(on?'var(--p)':'var(--t3)')+';background:'+(on?'var(--p)':'transparent')+';color:#000;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(on?'✓':'')+'</div><div style="min-width:0"><div style="font-weight:bold;color:'+(on?'var(--p)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</div><div style="font-size:11px;color:var(--t3)">'+[p.role,p.cycle].filter(Boolean).map(esc).join(' · ')+'</div></div></div><div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button class="mb '+(isClosed(p)?'ok':'p')+'" style="padding:6px 5px;font-size:10.5px" data-a="closeO" data-id="'+esc(p.id)+'" title="'+(isClosed(p)?'Xem, sửa bản chốt':'Chốt chu kỳ, chấm điểm')+'">🏁 Chốt</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="eProj" data-id="'+esc(p.id)+'">✏️ Sửa</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="archP" data-id="'+esc(p.id)+'">📦 Lưu trữ</button><button class="mb er" style="padding:6px 5px;font-size:10.5px" data-a="dProj" data-id="'+esc(p.id)+'">🗑 Xóa</button></div></div>';}).join(''):'<div class="hint" style="text-align:center">Chưa có O nào.</div>';
   h+='</div><button class="abtn" style="width:100%;margin-bottom:18px" data-a="newP">＋ TẠO O MỚI</button>';
-  if(arc.length) h+='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">📦 ĐÃ LƯU TRỮ</div>'+arc.map(p=>'<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--b1)"><span style="color:var(--t3);font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+(p.cycle?' · '+esc(p.cycle):'')+'</span><button class="mb ok" style="padding:6px 10px;font-size:11px" data-a="resP" data-id="'+esc(p.id)+'">Khôi phục</button></div>').join('');
+  if(arc.length) h+='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">📦 ĐÃ LƯU TRỮ</div>'+arc.map(p=>'<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--b1)"><span style="color:var(--t3);font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+(p.cycle?' · '+esc(p.cycle):'')+(isClosed(p)&&oFinal(p)!==null?' · 🏁 '+fmt(oFinal(p)):'')+'</span><span style="display:flex;gap:6px;flex-shrink:0"><button class="mb ok" style="padding:6px 10px;font-size:11px" data-a="resP" data-id="'+esc(p.id)+'">Khôi phục</button><button class="mb er" style="padding:6px 10px;font-size:11px" data-a="dProj" data-id="'+esc(p.id)+'">Xóa</button></span></div>').join('');
   return h;
 }
 ACT.oProj=()=>oMod('📁 O theo vai trò',projBody(),null,null);
 const reProj=()=>{ if($('mo').classList.contains('on')&&!MCB) $('mb').innerHTML=projBody(); };
 ACT.togP=id=>{ if(UI.pids.includes(id)) UI.pids=UI.pids.filter(x=>x!==id); else UI.pids.push(id); LS.set(K.ui,UI); render(); reProj(); };
-ACT.archP=id=>confirmBox('Lưu trữ O này?','O và mọi KR, KA, hành động bên trong được giữ nguyên, chỉ ẩn khỏi màn hình. Khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ const p=P(id); if(!p) return; put('projects',Object.assign({},p,{status:'archived',archived_at:td()})); fixUI(); commit(); reProj(); }}]);
+ACT.archP=id=>confirmBox('Lưu trữ O này?','O và mọi KR, KA, hành động bên trong được giữ nguyên, chỉ ẩn khỏi màn hình. Khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ const p=P(id); if(!p) return; put('projects',Object.assign({},p,{status:'archived',archived_at:td()})); fixUI(); commit(); if(MCB) cMod(); else reProj(); toast('Đã lưu trữ O','ok'); }}]);
 ACT.resP=id=>{ const p=P(id); if(!p) return; put('projects',Object.assign({},p,{status:'active',archived_at:''})); if(!UI.pids.includes(id)) UI.pids.push(id); commit(); reProj(); };
-function fProj(p){ p=p||{}; return '<div class="fg"><label class="fl">Tên O (mục tiêu) *</label><input class="fi" id="f-pn" maxlength="200" value="'+esc(p.name)+'" placeholder="VD: Đạt chuẩn huấn luyện viên quốc tế"></div><div class="frow"><div class="fg"><label class="fl">Vai trò</label><input class="fi" id="f-pr" maxlength="80" value="'+esc(p.role)+'" placeholder="VD: Huấn luyện viên"></div><div class="fg"><label class="fl">Loại OKR</label><select class="fi" id="f-pt"><option value="aspire">Khát vọng (đạt ở 0,7)</option><option value="commit"'+(p.otype==='commit'?' selected':'')+'>Cam kết (đạt ở 1,0)</option></select></div></div><div class="fg"><label class="fl">Chu kỳ</label><input class="fi" id="f-pc" maxlength="40" value="'+esc(p.cycle)+'" placeholder="VD: Quý 4/2026"></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-ps" type="date" value="'+esc(p.start_date)+'"></div><div class="fg"><label class="fl">Kết thúc</label><input class="fi" id="f-pe" type="date" value="'+esc(p.end_date)+'"></div></div><div class="fg"><label class="fl">Ý nghĩa: vì sao O này quan trọng?</label><textarea class="fi" id="f-pd" rows="3" maxlength="600">'+esc(p.desc)+'</textarea></div>'; }
+function fProj(p){ p=p||{}; return (p.id?'':lessonsBox())+'<div class="fg"><label class="fl">Tên O (mục tiêu) *</label><input class="fi" id="f-pn" maxlength="200" value="'+esc(p.name)+'" placeholder="VD: Đạt chuẩn huấn luyện viên quốc tế"></div><div class="frow"><div class="fg"><label class="fl">Vai trò</label><input class="fi" id="f-pr" maxlength="80" value="'+esc(p.role)+'" placeholder="VD: Huấn luyện viên"></div><div class="fg"><label class="fl">Loại OKR</label><select class="fi" id="f-pt"><option value="aspire">Khát vọng (đạt ở 0,7)</option><option value="commit"'+(p.otype==='commit'?' selected':'')+'>Cam kết (đạt ở 1,0)</option></select></div></div><div class="fg"><label class="fl">Chu kỳ</label><input class="fi" id="f-pc" maxlength="40" value="'+esc(p.cycle)+'" placeholder="VD: Quý 4/2026"></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-ps" type="date" value="'+esc(p.start_date)+'"></div><div class="fg"><label class="fl">Kết thúc</label><input class="fi" id="f-pe" type="date" value="'+esc(p.end_date)+'"></div></div><div class="fg"><label class="fl">Ý nghĩa: vì sao O này quan trọng?</label><textarea class="fi" id="f-pd" rows="3" maxlength="600">'+esc(p.desc)+'</textarea></div>'+(p.id&&p.status!=='archived'?'<button class="mb" data-a="archP" data-id="'+esc(p.id)+'">📦 Lưu trữ O này</button>':''); }
 function saveProj(old){ const name=vv('f-pn'),s=normDate(vv('f-ps')),e=normDate(vv('f-pe')); if(!name){ toast('Cần tên O','er'); return false; } if(s&&e&&e<s){ toast('Ngày kết thúc phải sau ngày bắt đầu','er'); return false; }
   const rec=Object.assign({id:uid('p'),status:'active',created:td(),archived_at:''},old||{},{name,role:vv('f-pr'),otype:vv('f-pt')==='commit'?'commit':'aspire',cycle:vv('f-pc'),start_date:s,end_date:e,desc:vv('f-pd')}); put('projects',rec); if(!old&&!UI.pids.includes(rec.id)) UI.pids.push(rec.id); commit(); toast(old?'Đã lưu O':'Đã tạo O','ok'); }
 ACT.newP=()=>oMod('✨ Tạo O mới',fProj(),()=>saveProj(null));
-ACT.eProj=id=>{ const p=P(id); if(p) oMod('✏️ Sửa O',fProj(p),()=>saveProj(p)); };
+ACT.eProj=id=>{ const p=P(id); if(p) oMod('✏️ Sửa O',fProj(p),()=>saveProj(p),()=>ACT.dProj(id)); };
+ACT.dProj=id=>{ const p=P(id); if(!p) return; const gs=DB.goals.filter(g=>g.pid===id),bs=DB.behaviors.filter(b=>bPid(b)===id),as=DB.actions.filter(a=>aPid(a)===id);
+  askDel('Xóa O «'+p.name+'»?','Xóa kèm '+gs.length+' KR, '+bs.length+' KA, '+as.length+' hành động và toàn bộ số liệu, lần ghi nhận bên trong. Không hoàn tác được. Nếu chỉ muốn ẩn đi, hãy dùng Lưu trữ.',()=>{ as.forEach(a=>del('actions',a.id)); bs.forEach(b=>delBehRec(b.id)); gs.forEach(g=>delGoalRec(g.id)); del('projects',id); fixUI(); commit(); reProj(); toast('Đã xóa O','ok'); }); };
 
 /* ---------------- form KR ---------------- */
 function fGoal(g,pid){
-  g=g||{}; const ps=actP(),dp=g.pid||pid||UI.pids[0]||(ps[0]&&ps[0].id)||'',k=g.kind||'sum',kas=DB.behaviors.filter(b=>bPid(b)===dp);
+  g=g||{}; const ps=actP(),dp=g.pid||pid||UI.pids[0]||(ps[0]&&ps[0].id)||'',k=g.kind||'sum',kas=DB.behaviors.filter(b=>bPid(b)===dp&&bLive(b));
   return '<div class="fg"><label class="fl">Thuộc O *</label><select class="fi" id="f-gp">'+ps.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===dp?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">KR: kết quả cần đạt *</label><input class="fi" id="f-gn" maxlength="300" value="'+esc(g.name)+'" placeholder="VD: Có đủ 50 giờ huấn luyện được ghi lại"></div><div class="fg"><label class="fl">Kiểu đo</label><select class="fi" id="f-gk" data-c="gKind"><option value="sum">Cộng dồn: mỗi lần nhập một con số</option><option value="list"'+(k==='list'?' selected':'')+'>Tích theo danh sách: từng phiên, từng doanh nghiệp, từng tuần</option><option value="ka"'+(k==='ka'?' selected':'')+'>Lấy từ KA: tự đếm theo việc làm KA</option></select></div><div id="x-ka" style="display:'+(k==='ka'?'block':'none')+'"><div class="frow"><div class="fg"><label class="fl">Lấy từ KA nào</label><select class="fi" id="f-gl"><option value="">— chọn sau —</option>'+kas.map(b=>'<option value="'+esc(b.id)+'"'+(b.id===g.link_bid?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Đếm gì</label><select class="fi" id="f-gm2"><option value="count">Số lần ghi nhận</option><option value="days"'+(g.link_mode==='days'?' selected':'')+'>Số ngày làm đủ</option></select></div></div></div><div class="frow"><div class="fg"><label class="fl">Đích (con số)</label><input class="fi" id="f-gt" type="number" inputmode="decimal" min="0" step="any" value="'+(g.target>0?g.target:'')+'" placeholder="VD: 50"><div class="hint" id="x-list" style="display:'+(k==='list'?'block':'none')+'">Để trống nghĩa là phải tích hết mọi dòng. VD 9/11 tuần thì đích là 9.</div></div><div class="fg"><label class="fl">Đơn vị</label><input class="fi" id="f-gu" maxlength="40" value="'+esc(g.unit)+'" placeholder="VD: giờ"></div></div><div class="fg"><label class="fl">Cách đo</label><input class="fi" id="f-gm" maxlength="200" value="'+esc(g.measure)+'" placeholder="VD: Sổ giờ: ngày, doanh nghiệp, số giờ"></div><div class="frow"><div class="fg"><label class="fl">Thời điểm đo</label><input class="fi" id="f-gw" maxlength="120" value="'+esc(g.measure_when)+'" placeholder="VD: Hằng tuần; chốt 31/12"></div><div class="fg"><label class="fl">Người xác nhận</label><input class="fi" id="f-gc" maxlength="120" value="'+esc(g.confirmer)+'" placeholder="VD: Chị Lan Anh"></div></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-gs" type="date" value="'+esc(g.start_date||(g.id?'':td()))+'"></div><div class="fg"><label class="fl">Hạn</label><input class="fi" id="f-gd" type="date" value="'+esc(g.deadline)+'"></div></div><div class="fg"><label class="fl">Trọng số (tùy chọn)</label><input class="fi" id="f-gwt" type="number" min="0" max="100" step="any" value="'+(g.weight>0?g.weight:'')+'" placeholder="Bỏ trống: các KR chia đều"></div>';
 }
 CHG.gKind=el=>{ $('x-ka').style.display=el.value==='ka'?'block':'none'; $('x-list').style.display=el.value==='list'?'block':'none'; };
@@ -941,7 +1046,13 @@ ACT.newG=()=>{ if(!actP().length) return ACT.newP(); oMod('🎯 KR mới',fGoal(
 ACT.eGoal=id=>{ const g=G(id); if(g) oMod('✏️ Sửa KR',fGoal(g),()=>saveGoal(g),()=>ACT.dGoal(id)); };
 function delBehRec(id){ DB.checkins.filter(c=>c.bid===id).forEach(c=>del('checkins',c.id)); DB.actions.filter(a=>a.bid===id).forEach(a=>del('actions',a.id)); del('behaviors',id); }
 ACT.dGoal=id=>{ const g=G(id); if(!g) return; const bs=DB.behaviors.filter(b=>b.gid===id),na=DB.actions.filter(a=>bs.some(b=>b.id===a.bid)).length,nl=DB.logs.filter(l=>l.gid===id).length+DB.items.filter(i=>i.gid===id).length;
-  askDel('Xóa KR «'+g.name+'»?','Xóa kèm '+bs.length+' KA, '+na+' hành động và '+nl+' dòng số liệu bên trong. Không hoàn tác được.',()=>{ bs.forEach(b=>delBehRec(b.id)); DB.logs.filter(l=>l.gid===id).forEach(l=>del('logs',l.id)); DB.items.filter(i=>i.gid===id).forEach(i=>del('items',i.id)); del('goals',id); commit(); }); };
+  askDel('Xóa KR «'+g.name+'»?','Xóa kèm '+bs.length+' KA, '+na+' hành động và '+nl+' dòng số liệu bên trong. Không hoàn tác được. Nếu chỉ muốn ẩn đi, hãy dùng Lưu trữ.',()=>{ delGoalRec(id); commit(); }); };
+function delGoalRec(id){ DB.behaviors.filter(b=>b.gid===id).forEach(b=>delBehRec(b.id)); DB.logs.filter(l=>l.gid===id).forEach(l=>del('logs',l.id)); DB.items.filter(i=>i.gid===id).forEach(i=>del('items',i.id)); del('goals',id); }
+/* lưu trữ: ẩn khỏi màn hình và không tính vào tiến độ, dữ liệu giữ nguyên, khôi phục được */
+ACT.arcG=id=>{ const g=G(id); if(!g) return; const bs=DB.behaviors.filter(b=>b.gid===id); confirmBox('Lưu trữ KR «'+g.name+'»?','KR cùng '+bs.length+' KA và '+DB.actions.filter(a=>bs.some(b=>b.id===a.bid)).length+' hành động bên trong sẽ ẩn khỏi màn hình và không tính vào tiến độ của O. Dữ liệu giữ nguyên, khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ put('goals',Object.assign({},g,{archived:true,archived_at:td()})); commit(); toast('Đã lưu trữ KR','ok'); }}]); };
+ACT.unG=id=>{ const g=G(id); if(!g) return; put('goals',Object.assign({},g,{archived:false,archived_at:''})); OPEN.add('gd-'+id); commit(); toast('Đã khôi phục KR','ok'); };
+ACT.arcB=id=>{ const b=B(id); if(!b) return; confirmBox('Lưu trữ KA «'+b.name+'»?','KA cùng '+DB.actions.filter(a=>a.bid===id).length+' hành động của nó sẽ ẩn khỏi màn hình và không còn nhắc hằng ngày. Dữ liệu giữ nguyên, khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ put('behaviors',Object.assign({},b,{archived:true,archived_at:td()})); commit(); toast('Đã lưu trữ KA','ok'); }}]); };
+ACT.unB=id=>{ const b=B(id); if(!b) return; put('behaviors',Object.assign({},b,{archived:false,archived_at:''})); commit(); toast('Đã khôi phục KA','ok'); };
 
 /* ---------------- form KA ---------------- */
 function fBeh(b,gid){
@@ -956,12 +1067,12 @@ function saveBeh(old){
   if(r==='weekly'&&!(q>=1&&q<=50)){ toast('Số lần mỗi tuần từ 1 đến 50','er'); return false; }
   if(r==='multi'&&(sl.length<2||sl.length>4)){ toast('Cần 2 đến 4 lần trong ngày','er'); return false; }
   const rest=(r==='daily'||r==='multi')?vv('f-brest'):''; if(rest.split(',').filter(Boolean).length>=7){ toast('Không thể nghỉ cả 7 ngày','er'); return false; }
-  const rec=Object.assign({id:uid('b')},old||{},{gid,pid:'',name,desc:vv('f-bd'),rhythm:r,quota:r==='weekly'?q:1,slots:r==='multi'?sl.join(', '):'',rest,m1:vv('f-b1'),m2:vv('f-b2'),m3:vv('f-b3'),habit:!!($('f-bh')&&$('f-bh').checked)});
+  const rec=Object.assign({id:uid('b'),created:td()},old||{},{gid,pid:'',name,desc:vv('f-bd'),rhythm:r,quota:r==='weekly'?q:1,slots:r==='multi'?sl.join(', '):'',rest,m1:vv('f-b1'),m2:vv('f-b2'),m3:vv('f-b3'),habit:!!($('f-bh')&&$('f-bh').checked)});
   put('behaviors',rec); commit(); toast(old?'Đã lưu KA':'Đã tạo KA','ok');
 }
 ACT.newB=gid=>{ if(!DB.goals.length) return toast('Hãy tạo KR trước','wa'); oMod('💡 KA mới',fBeh(null,gid),()=>saveBeh(null)); };
 ACT.eBeh=id=>{ const b=B(id); if(b) oMod('✏️ Sửa KA',fBeh(b),()=>saveBeh(b),()=>ACT.dBeh(id)); };
-ACT.dBeh=id=>{ const b=B(id); if(!b) return; askDel('Xóa KA «'+b.name+'»?','Xóa kèm '+DB.actions.filter(a=>a.bid===id).length+' hành động và '+cisOf(id).length+' lần ghi nhận. Không hoàn tác được.',()=>{ delBehRec(id); commit(); }); };
+ACT.dBeh=id=>{ const b=B(id); if(!b) return; askDel('Xóa KA «'+b.name+'»?','Xóa kèm '+DB.actions.filter(a=>a.bid===id).length+' hành động và '+cisOf(id).length+' lần ghi nhận. Không hoàn tác được. Nếu chỉ muốn ẩn đi, hãy dùng Lưu trữ.',()=>{ delBehRec(id); commit(); }); };
 
 /* ---------------- form hành động ---------------- */
 function fAct(a,bid,src){
@@ -980,10 +1091,126 @@ ACT.eAct=id=>{ const a=A(id); if(a) oMod('✏️ Sửa hành động',fAct(a),()
 
 /* ---------------- gắn sự kiện, khởi động ---------------- */
 document.addEventListener('click',e=>{ const el=e.target.closest('[data-a]'); if(!el) return; const f=ACT[el.dataset.a]; if(f){ e.preventDefault(); f(el.dataset.id||'',el.dataset.v||'',el); } });
-document.addEventListener('change',e=>{ const el=e.target.closest('[data-c]'); if(el&&CHG[el.dataset.c]) CHG[el.dataset.c](el); });
+document.addEventListener('change',e=>{ const el=e.target.closest('[data-c]'); if(el&&CHG[el.dataset.c]) CHG[el.dataset.c](el); const i=e.target.closest('[data-i]'); if(i&&INP[i.dataset.i]) INP[i.dataset.i](i); });
+document.addEventListener('input',e=>{ const el=e.target.closest('[data-i]'); if(el&&INP[el.dataset.i]) INP[el.dataset.i](el); });
 document.addEventListener('keydown',e=>{ if(e.key!=='Enter'||e.isComposing) return; const el=e.target; if(el.id==='password-input'||el.id==='url-input'){ e.preventDefault(); unlock(); return; } if(el.dataset&&el.dataset.enter&&ACT[el.dataset.enter]){ e.preventDefault(); ACT[el.dataset.enter](el.dataset.id||'',el.dataset.v||'',el); } });
 $('mo').addEventListener('click',e=>{ if(e.target===$('mo')) cMod(); });
 $('restore-file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ let j; try{ j=JSON.parse(rd.result); }catch(x){ return toast('File không đọc được','er'); } if(!j||!Array.isArray(j.projects)||!Array.isArray(j.goals)) return toast('File không đúng định dạng sao lưu','er'); const nd=normDB(j); confirmBox('Khôi phục từ file này?','File có '+countDB(nd)+' bản ghi. Toàn bộ dữ liệu hiện tại ('+countDB(DB)+' bản ghi) sẽ bị thay thế'+(AUTH.local?'.':', cả trên máy lẫn trên kho.'),[{l:'Không',c:'bs'},{l:'Thay thế',c:'bd',f:()=>applyRestore(nd)}]); }; rd.readAsText(f); });
+
+/* ============================================================
+   RÀ SOÁT TUẦN và CHỐT CHU KỲ (nằm trong tab Phân Tích)
+   ============================================================ */
+const SUBS=[['ov','Tổng quan'],['wk','Rà soát tuần'],['cl','Chốt chu kỳ']];
+const segBar=()=>'<div class="seg">'+SUBS.map(x=>'<button class="sgb'+(UI.asub===x[0]?' on':'')+'" data-a="asub" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>';
+ACT.asub=(id,v)=>{ if(!SUBS.some(x=>x[0]===v)) return; UI.asub=v; LS.set(K.ui,UI); render(); $('main').scrollTop=0; };
+const closedTag=p=>isClosed(p)?' · 🏁 đã chốt'+(oFinal(p)!==null?' '+fmt(oFinal(p)):''):'';
+
+/* ---------------- rà soát tuần ---------------- */
+let RV={ws:'',win:'',stuck:'',plan:'',dirty:false};       // phần đang viết được giữ ở đây để không mất khi màn hình vẽ lại
+const RVK=['win','stuck','plan'];
+function rvLoad(ws){ const r=reviewOf(ws)||{}; RV={ws,win:r.win||'',stuck:r.stuck||'',plan:r.plan||'',dirty:false}; }
+INP.rv=el=>{ const k=el.dataset.v; if(RVK.includes(k)){ RV[k]=el.value; RV.dirty=true; } };
+function rvHas(ws){ const we=addD(ws,6); return allBehs().some(b=>{ const s=kaStart(b); return s&&s<=we; })||allGoals().some(g=>krWeek(g,ws)>0); }
+function rvCard(){ if(!runPs().length) return ''; const ws=dueWeek(),t=td(); if(reviewOf(ws)||!rvHas(ws)) return ''; if(ws===weekStart(t)&&![5,6,0].includes(pd(t).getDay())) return '';   /* tuần đang chạy thì chỉ nhắc từ thứ Sáu */ return '<div class="wi" id="rv-card"><div class="wig">🗓️</div><div class="wib"><div class="wit">Đến lúc rà soát tuần '+wkLabel(ws)+'</div><div class="wid">Nhìn lại nhịp KA, xem nguồn nào đang yếu, chọn điều chỉnh cho tuần tới.</div></div><button class="mb p" data-a="goRv">Rà soát</button></div>'; }
+ACT.goRv=()=>{ if(!RV.dirty) rvLoad(dueWeek()); UI.asub='wk'; swV('analyze'); };
+function rvSwitch(ws){ const go=()=>{ rvLoad(ws); render(); $('main').scrollTop=0; }; if(RV.dirty&&ws!==RV.ws) confirmBox('Bỏ phần đang viết của tuần '+wkLabel(RV.ws)+'?','Phần chưa lưu sẽ mất.',[{l:'Ở lại',c:'bs'},{l:'Bỏ, chuyển tuần',c:'bd',f:go}]); else go(); }
+ACT.rvNav=(id,v)=>{ const cw=weekStart(td()),ws=addD(RV.ws||dueWeek(),v==='-1'?-7:7); if(ws>cw||ws<addD(cw,-7*104)) return; rvSwitch(ws); };
+ACT.rvGo=ws=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(ws)&&ws<=weekStart(td())) rvSwitch(weekStart(ws)); };
+ACT.rvSave=()=>{
+  RVK.forEach(k=>{ const e=$('rv-'+k); if(e) RV[k]=e.value; });
+  const ws=RV.ws,v=k=>String(RV[k]||'').trim().slice(0,1500); if(!ws) return;
+  if(!v('win')&&!v('stuck')&&!v('plan')) return toast('Viết ít nhất một dòng trước khi lưu','er');
+  const old=reviewOf(ws),snap=!old||ws>=addD(weekStart(td()),-7),sm=weekSum(ws);   // số liệu chụp lại lúc lưu; tuần cũ hơn thì giữ số đã chụp
+  put('logs',Object.assign({id:'rv_'+ws},old||{},{gid:RVG,date:ws,value:0,note:'',win:v('win'),stuck:v('stuck'),plan:v('plan')},snap?{pct:sm.pct===null?'':String(sm.pct),rate:sm.rate===null?'':String(Math.round(sm.rate*100))}:{}));
+  RV.dirty=false; commit(); toast('Đã lưu rà soát tuần '+wkLabel(ws),'ok');
+};
+ACT.rvDel=()=>{ const r=reviewOf(RV.ws); if(!r) return; askDel('Xóa bản rà soát tuần '+wkLabel(RV.ws)+'?','',()=>{ del('logs',r.id); RV.dirty=false; commit(); }); };
+
+function reviewView(){
+  const os=runPs(),t=td();
+  if(!os.length) return '<div class="empty"><div class="ei">🗓️</div><h3>'+(actP().length?'Mọi O đang chạy đều đã chốt':'Chưa có O nào đang chạy')+'</h3><p>Rà soát tuần nhìn lại nhịp KA và nguồn ảnh hưởng của các O đang chạy, chưa chốt.</p></div>'+rvHistory();
+  if(!RV.ws) rvLoad(dueWeek()); else if(!RV.dirty) rvLoad(RV.ws);
+  const ws=RV.ws,cw=weekStart(td()),saved=reviewOf(ws),sm=weekSum(ws),prev=reviewOf(addD(ws,-7));
+  const box=(n,l,c)=>'<div class="sb3"><div class="sb3n"'+(c?' style="color:var(--'+c+')"':'')+'>'+n+'</div><div class="sb3l">'+l+'</div></div>';
+  let h='<div class="wkn"><button class="mb" data-a="rvNav" data-v="-1" title="Tuần trước đó">◀</button><div class="wkt">Tuần '+wkLabel(ws)+'<div class="wks">'+[ws===cw?'tuần này':ws===addD(cw,-7)?'tuần trước':'',saved?'✓ đã rà soát':'chưa rà soát'].filter(Boolean).join(' · ')+'</div></div><button class="mb" data-a="rvNav" data-v="1" title="Tuần sau đó"'+(ws>=cw?' disabled':'')+'>▶</button></div>';
+  h+='<div class="strow" style="margin:0 0 14px">'+box(sm.rate===null?'—':Math.round(sm.rate*100)+'%','Nhịp KA'+(sm.due?' · '+sm.done+'/'+sm.due:''),sm.rate===null?'t3':sm.rate>=.8?'ok':sm.rate>=.5?'wa':'er')+box(sm.moved+'/'+sm.krs,'KR có nhích',sm.moved?'p':'t3')+box(sm.blk,'Đang bị chặn',sm.blk?'er':'t1')+'</div>';
+  if(prev&&String(prev.plan||'').trim()) h+='<div class="wi"><div class="wig">📌</div><div class="wib"><div class="wit">Điều chỉnh đã chọn từ tuần trước</div><div class="wid pre">'+esc(prev.plan)+'</div></div></div>';
+  os.forEach(p=>{ const gs=liveGoals(p.id),pp=pPct(p.id),over=p.end_date&&p.end_date<t?dB(p.end_date,t):0;
+    h+='<div class="card n" style="padding:16px"><div class="row top"><div class="f1"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div></div><div class="mono tp" style="font-weight:700;flex-shrink:0">'+(pp===null?'—':pp+'%')+'</div></div>';
+    if(over) h+='<div class="row" style="gap:10px;margin-top:8px"><div class="f1 ovs" style="margin:0;color:var(--wa)">🏁 Đã hết chu kỳ '+over+' ngày, chưa chốt.</div><button class="mb p" data-a="closeO" data-id="'+esc(p.id)+'">Chốt</button></div>';
+    if(!gs.length) h+='<div class="hint">Chưa có KR đang chạy.</div>';
+    gs.forEach(g=>{ const st=gSt(g),dv=krWeek(g,ws),kas=DB.behaviors.filter(b=>b.gid===g.id&&!b.archived);
+      h+='<div class="ovk" data-a="goG" data-id="'+esc(g.id)+'"><div class="row" style="gap:8px"><div class="f1 ovn">🎯 '+esc(g.name)+'</div><span class="ovv" style="color:var(--'+(dv>0?'ok':'t3')+')">+'+fmt(dv)+'</span></div><div class="ovs">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · '+gPct(g)+'% · '+st.l+'</div></div>';
+      kas.forEach(b=>{ const k=kaWeek(b,ws),rate=k.due?k.done/k.due:null,low=!b.habit&&rate!==null&&rate<.8,att=low||(!b.habit&&cover(b).some(x=>x.blk>0));
+        const lab=b.habit?'đã thành nếp':b.rhythm==='event'?k.done+' lần':!k.due?'chưa đến nhịp':k.done+'/'+k.due+(b.rhythm==='weekly'?' lần':b.rhythm==='multi'?' ngày đủ':' ngày');
+        h+='<div class="ova" data-a="goB" data-id="'+esc(b.id)+'"><div class="f1 ovn" style="font-size:13px">💡 '+esc(b.name)+'</div><div class="ovv" style="font-size:13px;color:var(--'+(b.habit||rate===null?'t3':rate>=.8?'ok':rate>=.5?'wa':'er')+')">'+lab+'</div></div>';
+        if(att){ const hint=coverHint(b); h+='<div class="wka" data-ka="'+esc(b.id)+'">'+coverStrip(b)+'<div class="ovs">'+(low?'Nhịp thấp. ':'')+(hint?esc(hint.charAt(0).toUpperCase()+hint.slice(1))+'. Chạm ô trống để thêm hành động.':'Đã có hành động ở cả 6 nguồn: xem hành động nào chưa chạy.')+'</div></div>'; } });
+      if(!kas.length) h+='<div class="ova"><div class="ovs" style="margin:0;color:var(--wa)">Chưa có KA</div></div>'; });
+    h+='</div>'; });
+  const ta=(k,l,ph)=>'<div class="fg"><label class="fl" for="rv-'+k+'">'+l+'</label><textarea class="fi" id="rv-'+k+'" rows="3" maxlength="1500" data-i="rv" data-v="'+k+'" placeholder="'+ph+'">'+esc(RV[k])+'</textarea></div>';
+  h+='<div class="card" id="rv-form"><div class="sl">Ghi lại tuần '+wkLabel(ws)+'</div>'+ta('win','🏅 Ghi nhận: điều gì đã tiến lên, nhờ đâu?','VD: Giữ đủ 6 ngày viết nhật ký nhờ nhóm rèn chung nhắc mỗi tối')+ta('stuck','🔍 Phản hồi: điều gì đang vướng, nguồn nào còn thiếu?','VD: Mời doanh nghiệp chậm vì chưa có danh sách để mời (nguồn 6)')+ta('plan','➡️ Tuần tới: điều chỉnh gì?','VD: Thêm hành động nguồn 3: nhờ người quen giới thiệu 2 doanh nghiệp')+'<div style="display:flex;gap:10px"><button class="bp" style="flex:1" data-a="rvSave">'+(saved?'LƯU THAY ĐỔI':'LƯU RÀ SOÁT TUẦN')+'</button>'+(saved?'<button class="mb er" data-a="rvDel">🗑 Xóa</button>':'')+'</div></div>';
+  return h+rvHistory();
+}
+function rvHistory(){
+  const rs=reviews(); if(!rs.length) return '<div class="hint" style="margin-top:6px">Chưa có tuần nào được rà soát.</div>';
+  const all=OPEN.has('rvall'),sh=all?rs:rs.slice(0,8),pc=v=>v===''||v==null?null:Math.round(num(v));
+  return '<div class="sl" style="margin:24px 0 12px">Các tuần đã rà soát ('+rs.length+')</div>'+sh.map(r=>{ const txt=RVK.map(k=>String(r[k]||'').trim()).filter(Boolean).join(' · '),a=pc(r.pct),b=pc(r.rate);
+    return '<div class="ni rvh" data-a="rvGo" data-id="'+esc(r.date)+'" style="cursor:pointer'+(r.date===RV.ws?';border-color:var(--p)':'')+'"><div class="row" style="gap:8px"><div class="f1" style="font-weight:bold;font-size:14px">Tuần '+wkLabel(r.date)+'</div><div class="ovs" style="margin:0;flex-shrink:0">'+[a===null?'':'O đạt '+a+'%',b===null?'':'nhịp '+b+'%'].filter(Boolean).join(' · ')+'</div></div><div class="clip2">'+esc(txt)+'</div></div>'; }).join('')+(rs.length>8?'<button class="lnk" data-a="more" data-id="rvall" style="margin-top:4px">'+(all?'Thu gọn':'Xem tất cả '+rs.length+' tuần')+'</button>':'');
+}
+
+/* ---------------- chốt chu kỳ: tự chấm điểm, câu chuyện sau con số, bài học ---------------- */
+const pMeta=p=>[p.role,p.cycle,(p.start_date||p.end_date)?fd(p.start_date)+' – '+fd(p.end_date):''].filter(Boolean);
+function closeView(){
+  const act=actP(),t=td(),done=DB.projects.filter(isClosed).sort((a,b)=>String(b.closed_at).localeCompare(String(a.closed_at)));
+  let h='<div class="sl">O đang chạy</div>';
+  if(!act.length) h+='<div class="hint" style="margin-bottom:16px">Chưa có O nào đang chạy.</div>';
+  act.forEach(p=>{ const sc=oScore(p.id),dl=p.end_date?dB(t,p.end_date):null,cl=isClosed(p),fin=oFinal(p),id=esc(p.id);
+    const when=cl?'<span class="badge '+(passed(p,fin)?'ok':'wa')+'">🏁 Đã chốt '+fd(p.closed_at)+'</span>':dl===null?'<span class="badge n">Chưa đặt ngày kết thúc</span>':dl<0?'<span class="badge wa">Hết chu kỳ '+(-dl)+' ngày, chưa chốt</span>':'<span class="badge n">Còn '+dl+' ngày</span>';
+    h+='<div class="card '+(cl?'ok':dl!==null&&dl<0?'wa':'n')+'" data-o="'+id+'"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div><div class="ts" style="font-size:13px">'+pMeta(p).map(esc).join(' · ')+'</div><div style="margin:10px 0 8px">'+when+'</div><div class="ovs" style="margin:0 0 12px">'+(sc===null?'Chưa có KR':'Tự tính đến nay '+fmt(r2(sc))+' · đạt ở '+thrL(p))+(cl&&fin!==null?' · tự chấm <b class="t'+(passed(p,fin)?'ok':'wa')+'">'+fmt(fin)+'</b>':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="mb p" data-a="closeO" data-id="'+id+'">'+(cl?'✏️ Xem, sửa bản chốt':'🏁 Chốt và chấm điểm')+'</button>'+(cl?'<button class="mb" data-a="archP" data-id="'+id+'">📦 Lưu trữ</button>':'')+'</div></div>'; });
+  h+='<div class="sl" style="margin:26px 0 12px">Các chu kỳ đã chốt ('+done.length+')</div>';
+  if(!done.length) h+='<div class="hint">Chưa có chu kỳ nào được chốt. Khi hết chu kỳ, chốt O để tự chấm điểm, ghi câu chuyện sau con số và bài học.</div>';
+  done.forEach(p=>{ const fin=oFinal(p),ok=passed(p,fin),nid='cl-'+p.id,gs=liveGoals(p.id),id=esc(p.id);
+    let d=gs.map(g=>{ const s=sc01(g.self_score); return '<div class="itr" style="align-items:center"><div class="f1"><div>🎯 '+esc(g.name)+'</div><div class="ovs" style="margin-top:2px">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+(g.close_note?' · '+esc(g.close_note):'')+'</div></div><div class="ovv tp">'+fmt(s===null?r2(gScore(g)):s)+'</div></div>'; }).join('');
+    [['Câu chuyện sau con số',p.story],['6 nguồn: nguồn nào kéo, nguồn nào thiếu',p.src_note],['Bài học cho chu kỳ sau',p.lessons]].forEach(x=>{ if(String(x[1]||'').trim()) d+='<div style="margin-top:14px"><div class="sl" style="font-size:11px;margin-bottom:6px">'+x[0]+'</div><div class="pre" style="font-size:14.5px;color:var(--t1);line-height:1.5">'+esc(x[1])+'</div></div>'; });
+    d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb" data-a="closeO" data-id="'+id+'">✏️ Sửa bản chốt</button>'+(p.status==='archived'?'<button class="mb ok" data-a="resP" data-id="'+id+'">Khôi phục O</button>':'')+'</div>';
+    h+='<div class="card '+(ok?'ok':'wa')+'" data-cl="'+id+'"><div class="row top"><div class="f1 col"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px"><span class="gap '+(ok?'ok':'wa')+'">'+fmt(fin)+' '+(ok?'Đạt':'Chưa đạt')+'</span><span class="ts" style="font-size:13px">'+[p.cycle,'chốt '+fd(p.closed_at),p.status==='archived'?'đã lưu trữ':''].filter(Boolean).map(esc).join(' · ')+'</span></div></div>'+togBtn(nid)+'</div>'+nest(nid,d)+'</div>'; });
+  return h;
+}
+function closeBody(p){
+  const gs=liveGoals(p.id),auto=oScore(p.id),t=td(),dl=p.end_date?dB(t,p.end_date):null,as=DB.actions.filter(a=>aPid(a)===p.id&&aLive(a));
+  let h='<div class="ni"><div style="font-weight:bold;color:var(--p)">📁 '+esc(p.name)+'</div><div class="ovs">'+pMeta(p).concat(p.otype==='commit'?'Cam kết: đạt ở 1,0':'Khát vọng: đạt ở 0,7').map(esc).join(' · ')+'</div></div>';
+  if(!isClosed(p)&&dl!==null&&dl>0) h+='<div class="hint" style="margin:0 0 12px">Chu kỳ còn '+dl+' ngày. Vẫn chốt sớm được, và mở lại để sửa sau.</div>';
+  h+='<div class="sg" style="margin:0 0 18px"><div class="sb2"><div class="sbl">Tự tính từ số liệu</div><div class="sbv">'+fmt(r2(auto))+'</div></div><div class="sb2"><div class="sbl">Tự chấm</div><div class="sbv"><span class="tp" id="cl-fin">—</span><span id="cl-vd" style="font-size:12px;display:block;margin-top:2px"></span></div></div></div>';
+  h+='<div class="sl" style="font-size:12px;margin-bottom:10px">Chấm từng KR, từ 0 đến 1</div>';
+  gs.forEach(g=>{ const s=sc01(g.self_score),a=r2(gScore(g)),id=esc(g.id);
+    h+='<div class="ni"><div style="font-weight:600;font-size:14.5px">🎯 '+esc(g.name)+'</div><div class="ovs">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · tự tính '+fmt(a)+(g.weight>0?' · trọng số '+fmt(g.weight):'')+'</div><div class="clr"><input class="fi" id="cl-s-'+id+'" type="number" inputmode="decimal" min="0" max="1" step="0.1" value="'+(s===null?a:s)+'" data-i="clS" aria-label="Điểm tự chấm"><input class="fi" id="cl-n-'+id+'" maxlength="300" value="'+esc(g.close_note)+'" placeholder="Vì sao chấm vậy?" aria-label="Ghi chú"></div></div>'; });
+  h+='<div class="sl" style="font-size:12px;margin:18px 0 0">6 nguồn trong chu kỳ này</div><div class="cvs">'+SRC.map(s=>{ const x=as.filter(a=>a.source===s.id),dn=x.filter(a=>a.status==='done').length,bk=x.filter(a=>a.status==='blocked').length; return '<div class="cv '+(x.length?(bk?'b':'f'):'')+'" style="cursor:default" title="'+esc(s.s)+'"><em>'+s.e+'</em>'+(x.length?dn+'/'+x.length:'trống')+'</div>'; }).join('')+'</div><div class="hint" style="margin:6px 0 16px">Số hành động đã xong trên tổng số ở từng nguồn.</div>';
+  const rs=reviews().filter(r=>(!p.start_date||addD(r.date,6)>=p.start_date)&&(!p.end_date||r.date<=p.end_date)).reverse();
+  if(rs.length) h+='<details class="dt"><summary>Xem lại '+rs.length+' bản rà soát tuần trong chu kỳ</summary>'+rs.map(r=>'<div class="ni" style="margin-top:8px"><div style="font-weight:bold;font-size:13px">Tuần '+wkLabel(r.date)+'</div>'+[['🏅',r.win],['🔍',r.stuck],['➡️',r.plan]].filter(x=>String(x[1]||'').trim()).map(x=>'<div class="pre" style="font-size:13.5px;color:var(--t2);margin-top:4px">'+x[0]+' '+esc(x[1])+'</div>').join('')+'</div>').join('')+'</details>';
+  const ta=(id,l,v)=>'<div class="fg"><label class="fl" for="'+id+'">'+l+'</label><textarea class="fi" id="'+id+'" rows="3" maxlength="2000">'+esc(v)+'</textarea></div>';
+  return h+ta('cl-story','Câu chuyện sau con số: vì sao đạt, vì sao chưa?',p.story)+ta('cl-src','6 nguồn: nguồn nào đã kéo kết quả, nguồn nào còn thiếu?',p.src_note)+ta('cl-les','Bài học mang sang chu kỳ sau: giữ gì, bỏ gì, làm khác gì?',p.lessons);
+}
+let CLP='';
+const clPick=g=>{ const e=$('cl-s-'+g.id); return e?sc01(e.value):null; };
+function clCalc(){ const p=P(CLP),f=$('cl-fin'); if(!p||!f) return; const sc=oScore(CLP,clPick),ok=passed(p,sc),vd=$('cl-vd'); f.textContent=fmt(r2(sc)); vd.textContent=(ok?'Đạt':'Chưa đạt')+' · ngưỡng '+thrL(p); vd.style.color='var(--'+(ok?'ok':'wa')+')'; }
+INP.clS=clCalc;
+ACT.closeO=id=>{ const p=P(id); if(!p) return; if(!liveGoals(id).length) return toast('O này chưa có KR để chấm điểm','wa'); const cl=isClosed(p); CLP=id; oMod('🏁 Chốt chu kỳ',closeBody(p),()=>saveClose(id),cl?()=>unClose(id):null,cl?'LƯU BẢN CHỐT':'CHỐT CHU KỲ','Bỏ chốt'); clCalc(); };
+function saveClose(id){
+  const p=P(id); if(!p) return false; const gs=liveGoals(id);
+  for(const g of gs){ const e=$('cl-s-'+g.id); if(!e) continue; const raw=String(e.value).trim(),n=parseFloat(raw.replace(',','.')); if(!e.validity.valid||(raw!==''&&!(n>=0&&n<=1))||(raw===''&&e.validity.badInput)){ toast('Điểm tự chấm là một số từ 0 đến 1','er'); e.focus(); return false; } }
+  const sc=oScore(id,clPick),first=!isClosed(p),ok=passed(p,sc);
+  gs.forEach(g=>{ const s=clPick(g),ss=String(r2(s===null?gScore(g):s)),note=vv('cl-n-'+g.id).slice(0,300); if(String(g.self_score==null?'':g.self_score)!==ss||String(g.close_note||'')!==note) put('goals',Object.assign({},g,{self_score:ss,close_note:note})); });
+  put('projects',Object.assign({},p,{closed_at:p.closed_at||td(),final_score:String(r2(sc)),auto_score:String(r2(oScore(id))),story:vv('cl-story').slice(0,2000),src_note:vv('cl-src').slice(0,2000),lessons:vv('cl-les').slice(0,2000)}));
+  commit();
+  if(first&&p.status!=='archived') confirmBox('Đã chốt: '+fmt(r2(sc))+' điểm, '+(ok?'đạt':'chưa đạt')+' ngưỡng '+thrL(p)+'.','Lưu trữ O này để dọn màn hình? KA của nó sẽ thôi nhắc hằng ngày. Bản chốt và bài học vẫn xem được ở Phân Tích → Chốt chu kỳ.',[{l:'Để sau',c:'bs'},{l:'Lưu trữ O',c:'bp',f:()=>{ const q=P(id); if(!q) return; put('projects',Object.assign({},q,{status:'archived',archived_at:td()})); fixUI(); commit(); toast('Đã lưu trữ O','ok'); }}]);
+  else toast('Đã lưu bản chốt','ok');
+}
+function unClose(id){ const p=P(id); if(!p) return; confirmBox('Bỏ chốt O «'+p.name+'»?','O trở lại trạng thái chưa chốt. Điểm tự chấm và ghi chép vẫn được giữ để lần chốt sau dùng lại.',[{l:'Không',c:'bs'},{l:'Bỏ chốt',c:'bd',f:()=>{ const q=P(id); if(!q) return; put('projects',Object.assign({},q,{closed_at:'',final_score:''})); commit(); toast('Đã bỏ chốt','ok'); }}]); }
+function lessonsBox(){
+  const ls=DB.projects.filter(p=>isClosed(p)&&String(p.lessons||'').trim()).sort((a,b)=>String(b.closed_at).localeCompare(String(a.closed_at))).slice(0,2); if(!ls.length) return '';
+  return '<div class="ni" id="lessons-box" style="margin-bottom:18px;border-color:rgba(255,212,0,.35)"><div class="sl" style="font-size:12px;margin-bottom:4px">📌 Bài học từ chu kỳ trước</div>'+ls.map(p=>'<div style="margin-top:8px"><div class="ovs" style="margin:0 0 2px">'+esc([p.name,p.cycle].filter(Boolean).join(' · '))+'</div><div class="pre" style="font-size:14px;line-height:1.5">'+esc(p.lessons)+'</div></div>').join('')+'</div>';
+}
+
 boot();
 </script>
 </body>
