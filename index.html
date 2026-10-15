@@ -448,6 +448,45 @@ textarea.fi { resize: vertical; line-height: 1.45; }
 .rvf-k { font-size: 13.5px; margin: 4px 0 0 8px; line-height: 1.45; }
 .rvf-a { font-size: 13px; color: var(--t2); margin: 2px 0 0 24px; line-height: 1.45; }
 .rvf-q { margin-top: 10px; border-top: 1px dashed var(--b1); padding-top: 6px; }
+/* bộ OKR theo vai trò */
+#setbar { display: flex; gap: 6px; overflow-x: auto; padding: 8px 16px; scrollbar-width: none; border-bottom: 1px solid var(--b1); flex-shrink: 0; }
+#setbar:empty { display: none; }
+.sc { --sc: var(--t2); white-space: nowrap; border: 1px solid var(--b2); background: rgba(0,0,0,0.25); color: var(--t2); border-radius: 20px; padding: 6px 12px; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.sc i, .seth i, .setrow i { width: 9px; height: 9px; border-radius: 50%; background: var(--sc); display: inline-block; flex-shrink: 0; }
+.sc.on { border-color: var(--sc); color: #111; background: var(--sc); }
+.sc.on i { background: #111; }
+.seth { --sc: var(--p); display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 24px 0 10px; padding: 8px 12px; border-radius: var(--rs); background: rgba(0,0,0,0.25); border-left: 4px solid var(--sc); font-family: 'Space Mono', monospace; font-weight: 700; color: var(--sc); font-size: 13.5px; }
+.seth span { display: inline-flex; align-items: center; gap: 8px; }
+.setsum { margin-top: 12px; border-top: 1px dashed var(--b1); padding-top: 8px; }
+.setrow { --sc: var(--p); display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; font-size: 14px; }
+.setrow span { display: inline-flex; align-items: center; gap: 8px; }
+.setrow b { font-family: 'Space Mono', monospace; color: var(--sc); }
+/* Hôm Nay gọn */
+.tdh { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tdn { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--t2); }
+.tdn b { color: var(--ok); font-size: 16px; }
+.toh { font-weight: 700; font-size: 13.5px; margin: 12px 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px; border-radius: var(--rs); background: var(--c2); border: 1px solid var(--b1); }
+.kar.due { border-color: rgba(253,185,19,0.45); }
+.kan1 { font-size: 15px; font-weight: 600; color: var(--t1); line-height: 1.35; min-width: 140px; }
+.krr { padding: 10px 12px; margin-bottom: 8px; border-radius: var(--rs); background: var(--c2); border: 1px solid var(--b1); }
+.krr .nested { margin-top: 10px; padding-top: 10px; }
+/* OKR: KA nằm dưới KR */
+.kas { margin: -4px 0 18px 14px; padding-left: 10px; border-left: 2px solid var(--b2); }
+.kas .card { margin-bottom: 8px; padding: 12px 14px; }
+/* 6 nguồn: mỗi hành động một dòng */
+.acr { display: flex; gap: 10px; align-items: flex-start; padding: 9px 4px; border-bottom: 1px solid var(--b1); }
+.acr .ck { width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--t3); background: transparent; color: #fff; font-weight: bold; cursor: pointer; flex-shrink: 0; margin-top: 1px; }
+.acr .ck.on { background: var(--ok); border-color: var(--ok); }
+.acr.done .acn { color: var(--t3); text-decoration: line-through; }
+.acr.blk .ck { border-color: var(--er); }
+.acn { font-size: 15px; color: var(--t1); line-height: 1.35; }
+/* Phân Tích: mục gập */
+details.sec { margin-top: 16px; border: 1px solid var(--b1); border-radius: var(--rs); padding: 10px 12px; background: rgba(0,0,0,0.15); }
+details.sec > summary { cursor: pointer; font-family: 'Space Mono', monospace; font-weight: 700; color: var(--p); font-size: 13px; }
+details.sec[open] > summary { margin-bottom: 8px; }
+#share-box .pre { color: var(--t1); }
+details.sec > summary { text-decoration: none; }
 </style>
 </head>
 <body>
@@ -468,26 +507,26 @@ textarea.fi { resize: vertical; line-height: 1.45; }
 <div id="app">
 <header id="hdr">
   <div class="logo">⚡<span>GÂY ẢNH HƯỞNG</span></div>
-  <div id="proj-info" data-a="oProj" title="Chọn và quản lý O">
+  <div id="proj-info" data-a="oProj" title="Bộ OKR và O">
     <span id="pname">—</span>
     <span style="font-size:12px; color:var(--p); margin-left:8px; flex-shrink:0; font-family: 'Space Mono', monospace;">⚙️<span class="pq"> Quản lý</span></span>
   </div>
   <div class="hbs">
+    <button class="hb" id="ro-pill" data-a="edMode" title="Đang xem · bấm để mở quyền sửa" style="display:none">👁</button>
     <button class="hb" id="syn-btn" data-a="sync" title="Đồng bộ">☁</button>
   </div>
 </header>
+<div id="setbar"></div>
 <div id="syncbar"><div class="sd" id="sdot"></div><span id="smsg"></span></div>
 <main id="main">
   <div class="view on" id="v-today"><div id="c-today"></div></div>
   <div class="view" id="v-goals"><div id="c-goals"></div></div>
-  <div class="view" id="v-behav"><div id="c-behav"></div></div>
   <div class="view" id="v-actions"><div id="c-actions"></div></div>
   <div class="view" id="v-analyze"><div id="c-analyze"></div></div>
 </main>
 <nav id="bnav">
   <button class="ntab on" data-a="tab" data-id="today"><em>📋</em>Hôm Nay</button>
-  <button class="ntab" data-a="tab" data-id="goals"><em>🎯</em>KR</button>
-  <button class="ntab" data-a="tab" data-id="behav"><em>💡</em>KA</button>
+  <button class="ntab" data-a="tab" data-id="goals"><em>🎯</em>OKR</button>
   <button class="ntab" data-a="tab" data-id="actions"><em>⚡</em>6 Nguồn</button>
   <button class="ntab" data-a="tab" data-id="analyze"><em>📊</em>Phân Tích</button>
 </nav>
@@ -572,7 +611,7 @@ let DB=normDB({});
 let OUT=[];                          // hàng chờ gửi lên kho, được lưu xuống máy
 let SEQ=0;
 let UI={pids:[],view:'today',asrc:0,asub:'ov',cal:'w',calOff:0};
-let AUTH={pwd:'',url:API_URL,local:false};
+let AUTH={pwd:'',url:API_URL,local:false,ro:false};   // ro: chế độ xem (ai có link đều xem được), sửa cần mật khẩu
 const OPEN=new Set();                // các thẻ đang mở, giữ nguyên khi vẽ lại
 let MCB=null,MDEL=null;
 
@@ -600,7 +639,7 @@ async function flush(){
       if(!res||!res.ok){ batch.forEach(o=>o.sent=false); if(res&&res.error==='unauthorized'){ relock('Mật khẩu không còn đúng. Thay đổi vẫn được giữ trên máy.'); return; } throw new Error((res&&res.error)||'server'); }
       const ks=new Set(batch.map(o=>o.k)); OUT=OUT.filter(o=>!ks.has(o.k)); saveOut(); retryN=0; lastSync=Date.now();
     }
-    syncErr='';
+    syncErr=''; repSoon();
   }catch(e){ OUT.forEach(o=>o.sent=false); syncErr='offline'; scheduleRetry(); }
   finally{ flushing=false; setSync(); if(!OUT.length&&pullWanted){ pullWanted=false; setTimeout(()=>pull(false),200); } }
 }
@@ -618,7 +657,7 @@ async function pull(manual){
     const fresh=normDB(res.data);
     if(AUTH.fromLocal){ AUTH.fromLocal=false; if(countDB(fresh)>0&&countDB(DB)>0){ syncErr=''; askMerge(fresh); return; } }   // vừa nối kho: hai bên đều có dữ liệu thì hỏi
     if(countDB(fresh)===0&&countDB(DB)>0){ syncErr=''; askEmptyStore(fresh); return; }
-    DB=fresh; LS.set(K.data,DB); lastSync=Date.now(); syncErr=''; fixUI();
+    DB=fresh; LS.set(K.data,DB); lastSync=Date.now(); syncErr=''; fixUI(); repDaily();
     if(isBusy()) renderPending=true; else render();
     if(manual) toast('Đã lấy dữ liệu mới nhất','ok');
   }catch(e){ syncErr='offline'; if(manual) toast('Không kết nối được kho dữ liệu','er'); }
@@ -651,7 +690,7 @@ function showLock(msg){
   $('url-input').style.display=API_URL?'none':'block'; if(!API_URL) $('url-input').value=AUTH.url||'';
   const e=$('login-error'); e.textContent=msg||''; e.style.display=msg?'block':'none';
 }
-function relock(msg){ AUTH.pwd=''; LS.del(K.pwd); showLock(msg); }
+function relock(msg){ AUTH.pwd=''; LS.del(K.pwd); if(AUTH.url&&$('app').style.display==='flex'){ AUTH.ro=true; toast(msg+' Chuyển sang chế độ xem.','wa'); render(); } else showLock(msg); }
 async function unlock(){
   const url=API_URL||vv('url-input'), pwd=$('password-input').value, e=$('login-error'), btn=$('btn-login');
   const fail=m=>{ e.textContent=m; e.style.display='block'; };
@@ -661,25 +700,27 @@ async function unlock(){
   AUTH.url=url; AUTH.pwd=pwd;
   try{
     const r=await api({action:'ping'});
-    if(r&&r.ok){ AUTH.local=false; LS.del(K.local); LS.set(K.url,url); LS.set(K.pwd,pwd); $('password-input').value=''; enterApp(); if(OUT.length) flush(); else pull(false); }
+    if(r&&r.ok){ AUTH.local=false; AUTH.ro=false; LS.del(K.local); LS.set(K.url,url); LS.set(K.pwd,pwd); $('password-input').value=''; enterApp(); if(OUT.length) flush(); else pull(false); }
     else { AUTH.pwd=''; fail(r&&r.error==='no_password_set'?'Kho dữ liệu chưa đặt mật khẩu. Mở bảng tính, chọn menu Gây Ảnh Hưởng → Đặt mật khẩu.':'Mật khẩu không đúng.'); }
   }catch(err){ AUTH.pwd=''; fail('Không kết nối được kho dữ liệu. Kiểm tra địa chỉ và mạng.'); }
   btn.disabled=false; btn.textContent='MỞ KHÓA';
 }
 function useLocal(){ AUTH.local=true; LS.set(K.local,true); enterApp(); toast('Đang dùng trên máy này. Vào Phân Tích để nối kho dữ liệu sau','wa'); }
 function logout(){
+  if(!AUTH.local&&AUTH.url){ const go=()=>{ AUTH.pwd=''; LS.del(K.pwd); AUTH.ro=true; render(); toast('Máy này chỉ còn quyền xem','ok'); }; if(OUT.length) return confirmBox('Còn '+OUT.length+' thay đổi chưa gửi lên kho.','Gửi xong rồi hãy thôi quyền sửa, nếu không các thay đổi đó sẽ mất.',[{l:'Gửi lại ngay',c:'bp',f:()=>flush()},{l:'Không',c:'bs',f:()=>{}}]); return confirmBox('Thôi quyền sửa trên máy này?','Máy này vẫn xem được. Muốn sửa lại thì nhập mật khẩu.',[{l:'Thôi quyền sửa',c:'bd',f:go},{l:'Không',c:'bs',f:()=>{}}]); }
   const go=()=>{ LS.del(K.pwd); LS.del(K.data); LS.del(K.out); LS.del(K.local); location.reload(); };
   if(AUTH.local) return confirmBox('Khóa app và xóa dữ liệu trên máy này?','Bạn đang dùng chế độ chưa đồng bộ: dữ liệu chỉ có trên máy này. Hãy tải bản sao lưu trước.',[{l:'Xóa và khóa',c:'bd',f:go},{l:'Không',c:'bs',f:()=>{}}]);
   if(OUT.length) return confirmBox('Còn '+OUT.length+' thay đổi chưa gửi lên kho.','Đăng xuất bây giờ sẽ làm mất các thay đổi đó.',[{l:'Gửi lại ngay',c:'bp',f:()=>flush()},{l:'Vẫn đăng xuất',c:'bd',f:go},{l:'Không',c:'bs',f:()=>{}}]);
   confirmBox('Đăng xuất khỏi máy này?','Dữ liệu trên kho vẫn còn; bản lưu trên máy này sẽ bị xóa.',[{l:'Đăng xuất',c:'bd',f:go},{l:'Không',c:'bs',f:()=>{}}]);
 }
-function enterApp(){ $('login-screen').style.display='none'; $('app').style.display='flex'; fixUI(); swV(UI.view,true); setSync(); }
+function enterApp(){ $('login-screen').style.display='none'; $('app').style.display='flex'; document.body.classList.toggle('ro',!!AUTH.ro); fixUI(); swV(UI.view,true); setSync(); }
 function boot(){
   DB=normDB(LS.get(K.data,{})); OUT=(LS.get(K.out,[])||[]).filter(o=>o&&o.type&&o.id); OUT.forEach(o=>{ SEQ=Math.max(SEQ,o.k||0); });
-  const u=LS.get(K.ui,null); if(u&&typeof u==='object'){ UI.pids=Array.isArray(u.pids)?u.pids.map(String):[]; UI.view=['today','goals','behav','actions','analyze'].includes(u.view)?u.view:'today'; UI.asrc=Math.min(6,Math.max(0,Math.round(num(u.asrc)))); UI.asub=['ov','wk','cl'].includes(u.asub)?u.asub:'ov'; UI.cal=u.cal==='m'?'m':'w'; UI.calOff=Math.max(0,Math.min(60,Math.round(num(u.calOff)))); }
+  const u=LS.get(K.ui,null); if(u&&typeof u==='object'){ UI.pids=Array.isArray(u.pids)?u.pids.map(String):[]; UI.view=['today','goals','actions','analyze'].includes(u.view)?u.view:u.view==='behav'?'goals':'today'; UI.asrc=Math.min(6,Math.max(0,Math.round(num(u.asrc)))); UI.asub=['ov','wk','cl'].includes(u.asub)?u.asub:'ov'; UI.cal=u.cal==='m'?'m':'w'; UI.calOff=Math.max(0,Math.min(60,Math.round(num(u.calOff)))); }
   AUTH.url=API_URL||LS.get(K.url,'')||''; AUTH.pwd=LS.get(K.pwd,'')||''; AUTH.local=!!LS.get(K.local,false);
   if(AUTH.local){ enterApp(); return; }
   if(AUTH.url&&AUTH.pwd){ enterApp(); if(OUT.length) flush(); else pull(false); return; }   // mở ngay bằng bản lưu trên máy, kho kiểm mật khẩu ở lần gọi đầu
+  if(AUTH.url){ AUTH.ro=true; OUT=[]; enterApp(); pull(false); return; }   // không có mật khẩu: mở thẳng chế độ xem
   showLock('');
 }
 
@@ -808,7 +849,7 @@ function coverStrip(b){ return '<div class="cvs">'+cover(b).map(x=>'<div class="
 /* ---------------- cảnh báo, mỗi cảnh báo chỉ về nguồn cần bổ sung ---------------- */
 function warns(){
   const open=pid=>!isClosed(P(pid)),gs=selGoals().filter(g=>open(g.pid)),bs=selBehs().filter(b=>open(bPid(b))),as=selActs().filter(a=>open(aPid(a))),ws=[],t=td(),multi=UI.pids.length>1;
-  UI.pids.forEach(pid=>{ const p=P(pid); if(p&&p.end_date&&p.end_date<t&&!isClosed(p)) ws.push({lv:'wa',ic:'🏁',t:'O đã hết chu kỳ '+dB(p.end_date,t)+' ngày: '+p.name,d:'Chốt chu kỳ: tự chấm điểm từng KR, ghi câu chuyện sau con số và bài học.',pri:7,pid:p.id}); });
+  UI.pids.forEach(pid=>{ const p=P(pid); if(p&&p.end_date&&p.end_date<t&&!isClosed(p)) ws.push({lv:'wa',ic:'🏁',t:'O đã hết chu kỳ '+dB(p.end_date,t)+' ngày: '+p.name,d:'Chốt chu kỳ: tự chấm điểm từng KR, ghi câu chuyện sau con số và bài học.',pri:11,pid:p.id}); });
   const pn=pid=>multi&&P(pid)?'['+P(pid).name+'] ':'';
   gs.forEach(g=>{
     const st=gSt(g),rp=gPct(g),dl=dL(g),kas=bs.filter(b=>b.gid===g.id);
@@ -909,19 +950,19 @@ ACT.mDel=()=>{ const f=MDEL; if(f){ cMod(); f(); } };
 ACT.cfm=(id,v)=>{ const b=CFM&&CFM[+v]; $('cfm').classList.remove('on'); CFM=null; if(b&&b.f) b.f(); afterModal(); };
 
 const VIEWS={};
-function render(){ const m=$('main'),y=m.scrollTop; upHdr(); VIEWS[UI.view](); m.scrollTop=y; setSync(); }
-function swV(v,keep){ document.querySelectorAll('.view').forEach(x=>x.classList.remove('on')); document.querySelectorAll('.ntab').forEach(x=>x.classList.toggle('on',x.dataset.id===v)); $('v-'+v).classList.add('on'); UI.view=v; LS.set(K.ui,UI); render(); if(!keep) $('main').scrollTop=0; }
-ACT.tab=id=>{ if(VIEWS[id]) swV(id); };
+function render(){ const m=$('main'),y=m.scrollTop; document.body.classList.toggle('ro',!!AUTH.ro); upHdr(); VIEWS[UI.view](); m.scrollTop=y; setSync(); }
+function swV(v,keep){ if(v==='behav') v='goals'; document.querySelectorAll('.view').forEach(x=>x.classList.remove('on')); document.querySelectorAll('.ntab').forEach(x=>x.classList.toggle('on',x.dataset.id===v)); $('v-'+v).classList.add('on'); UI.view=v; LS.set(K.ui,UI); render(); if(!keep) $('main').scrollTop=0; }
+ACT.tab=id=>{ if(id==='behav') id='goals'; if(VIEWS[id]) swV(id); };
 ACT.sync=()=>pull(true);
 ACT.unlock=unlock; ACT.useLocal=useLocal; ACT.logout=logout;
-function upHdr(){ const el=$('pname'),pct=allPct(),pre=pct!==null?pct+'% · ':''; if(!actP().length) el.textContent='Chưa có O nào'; else if(!UI.pids.length) el.textContent='Chọn O để xem'; else if(UI.pids.length===1){ const p=P(UI.pids[0]); el.textContent=pre+(p?p.name:'—'); } else el.textContent=pre+UI.pids.length+' mục tiêu O'; }
+function upHdr(){ const el=$('pname'),sb=$('setbar'); if(sb) sb.innerHTML=setBar(); const ro=$('ro-pill'); if(ro) ro.style.display=AUTH.ro?'':'none'; if(!actP().length){ el.textContent='Chưa có O nào'; return; } if(!UI.pids.length){ el.textContent='Chọn bộ OKR để xem'; return; } const cs=curSet(),pct=allPct(),pre=pct!==null?pct+'% · ':''; el.textContent=pre+(cs.all?'Tất cả bộ OKR':cs.set?cs.set.n:UI.pids.length===1&&P(UI.pids[0])?P(UI.pids[0]).name:UI.pids.length+' O đã chọn'); }
 
 const nest=(id,html)=>'<div id="'+esc(id)+'" class="nested'+(OPEN.has(id)?' show':'')+'">'+html+'</div>';
 const togBtn=id=>'<button class="tog'+(OPEN.has(id)?' open':'')+'" data-a="tog" data-id="'+esc(id)+'">▶</button>';
 ACT.tog=(id,v,el)=>{ const p=$(id); if(!p) return; const on=p.classList.toggle('show'); el.classList.toggle('open',on); if(on)OPEN.add(id); else OPEN.delete(id); };
 ACT.more=id=>{ if(OPEN.has(id))OPEN.delete(id); else OPEN.add(id); render(); };
 const stat=(n,l)=>'<div class="thi"><div class="n tp">'+n+'</div><div class="l">'+l+'</div></div>';
-const oBar=(p,extra)=>'<div style="padding:10px 14px;background:var(--c2);border-left:4px solid var(--p);border-radius:var(--rs);margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><div style="font-weight:bold;color:var(--p);overflow:hidden;text-overflow:ellipsis">📁 '+esc(p.name)+'</div><div style="font-size:12px;color:var(--t3)">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div>'+(extra||'')+'</div>';
+const oBar=(p,extra)=>'<div style="padding:10px 14px;background:var(--c2);border-left:4px solid '+setCol(setOf(p))+';border-radius:var(--rs);margin:22px 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><div style="font-weight:bold;color:'+setCol(setOf(p))+';overflow:hidden;text-overflow:ellipsis">📁 '+esc(p.name)+'</div><div style="font-size:12px;color:var(--t3)">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div>'+(extra||'')+'</div>';
 function noSel(ic){
   if(!actP().length) return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa có O nào</h3><p>O là mục tiêu của một vai trò trong chu kỳ. Tạo O đầu tiên để bắt đầu.</p><button class="abtn" data-a="newP">＋ TẠO O ĐẦU TIÊN</button><button class="lnk" data-a="imp" style="display:block;margin:14px auto 0">📥 hoặc nhập từ file Excel</button></div>';
   return '<div class="empty"><div class="ei">'+ic+'</div><h3>Chưa chọn O</h3><p>Chọn O muốn xem.</p><button class="abtn" data-a="oProj">CHỌN O</button></div>';
@@ -929,7 +970,7 @@ function noSel(ic){
 function wcard(w){ const btn=w.pid?'<button class="mb p" data-a="closeO" data-id="'+esc(w.pid)+'">Chốt</button>':w.aid?'<button class="mb" data-a="eAct" data-id="'+esc(w.aid)+'">Mở</button>':w.gid?'<button class="mb" data-a="goG" data-id="'+esc(w.gid)+'">Xem</button>':w.bid?'<button class="mb" data-a="goB" data-id="'+esc(w.bid)+'">Xem</button>':''; return '<div class="wi '+w.lv+'"><div class="wig">'+w.ic+'</div><div class="wib"><div class="wit">'+esc(w.t)+'</div><div class="wid">'+esc(w.d)+'</div></div>'+btn+'</div>'; }
 const showP=pid=>{ if(pid&&P(pid)&&P(pid).status!=='archived'&&!UI.pids.includes(pid)) UI.pids.push(pid); };
 ACT.goG=id=>{ const g0=G(id); if(g0) showP(g0.pid); OPEN.add('gd-'+id); swV('goals'); const e=$('gd-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
-ACT.goB=id=>{ const b0=B(id); if(b0) showP(bPid(b0)); OPEN.add('bn-'+id); swV('behav'); const e=$('bn-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
+ACT.goB=id=>{ const b0=B(id); if(b0) showP(bPid(b0)); OPEN.add('bn-'+id); swV('goals'); const e=$('bn-'+id); if(e) e.parentNode.scrollIntoView({block:'start'}); };
 
 /* ---------------- ghi nhận KA theo nhịp ---------------- */
 function kaCtl(b,d){
@@ -979,91 +1020,83 @@ function legacyCard(){ const d=countDB(DB)===0?legacyData():null; if(!d) return 
 ACT.impLegacy=()=>{ const d=legacyData(); if(!d) return toast('Không còn dữ liệu bản cũ trên máy này','wa'); TYPES.forEach(t=>d[t].forEach(r=>{ if(!DB[t].some(x=>x.id===r.id)) put(t,r); })); LS.set('gah2_legacy_done',true); fixUI(); UI.pids=actP().map(p=>p.id); commit(); toast('Đã nhập dữ liệu bản cũ','ok'); };
 VIEWS.today=function(){
   const el=$('c-today'); if(!UI.pids.length){ el.innerHTML=noSel('📋')+legacyCard(); return; }
-  const gs=selGoals(),bsAll=selBehs(),bs=bsAll.filter(b=>!b.habit),as=selActs(),t=td(),pct=allPct(),ov=overall(),ws=warns(),multi=UI.pids.length>1;
+  const gs=selGoals(),bsAll=selBehs(),bs=bsAll.filter(b=>!b.habit),as=selActs(),t=td(),ws=warns(),multi=UI.pids.length>1;
   const sched=bs.filter(b=>b.rhythm!=='event'&&!kaLater(b)), inPlay=sched.filter(b=>b.rhythm==='weekly'||!isRest(b,t)), doneN=inPlay.filter(b=>!dueToday(b)).length;
-  const tod=new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-  let h='<div class="th"><div class="th-d">'+esc(tod)+'</div><div class="th-s">'+(pct===null?'—':pct+'%')+'</div><div class="ts" style="margin-top:2px;color:var(--'+(ov.c==='nd'?'t3':ov.c)+')">'+ov.l+'</div>'+(pct!==null?'<div class="pb"><div class="pf '+(ov.c==='nd'?'p':ov.c)+'" style="width:'+pct+'%"></div></div>':'')+'<div class="ths">'+stat(doneN+'/'+inPlay.length,'KA đến nhịp')+stat(as.filter(a=>a.status==='blocked').length,'Bị chặn')+stat(gs.length,'KR')+stat(ws.filter(w=>w.lv==='er').length,'Cần xử lý')+'</div></div>';
+  const tod=new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'});
+  let h='<div class="tdh"><span class="th-d" style="margin:0">'+esc(tod)+'</span><span class="tdn">Đã tích <b>'+doneN+'/'+inPlay.length+'</b> KA</span></div><div class="pb" style="margin:6px 0 18px;height:5px"><div class="pf ok" style="width:'+(inPlay.length?Math.round(doneN/inPlay.length*100):0)+'%"></div></div>';
   if(!gs.length) h+='<div class="wi wa"><div class="wig">🎯</div><div class="wib"><div class="wit">Bước 1: đặt KR</div><div class="wid">Mỗi O cần vài kết quả then chốt đo được.</div></div><button class="mb p" data-a="newG">＋ KR</button></div>';
   else if(!bsAll.length) h+='<div class="wi wa"><div class="wig">💡</div><div class="wib"><div class="wit">Bước 2: chọn KA cho từng KR</div><div class="wid">KA là hành vi then chốt, làm đều thì KR nhích.</div></div><button class="mb p" data-a="newB">＋ KA</button></div>';
-  else if(!as.length) h+='<div class="wi wa"><div class="wig">⚡</div><div class="wib"><div class="wit">Bước 3: lập hành động theo 6 nguồn</div><div class="wid">Chạm vào ô nguồn còn trống dưới mỗi KA để thêm hành động.</div></div><button class="mb p" data-a="tab" data-id="behav">Mở KA</button></div>';
+  else if(!as.length) h+='<div class="wi wa"><div class="wig">⚡</div><div class="wib"><div class="wit">Bước 3: lập hành động theo 6 nguồn</div><div class="wid">Chạm vào ô nguồn còn trống dưới mỗi KA để thêm hành động.</div></div><button class="mb p" data-a="tab" data-id="goals">Mở OKR</button></div>';
   h+=rvCard();
+  const byO=(list,row)=>UI.pids.map(pid=>{ const p=P(pid),xs=list.filter(b=>bPid(b)===pid); if(!p||!xs.length) return ''; return (multi?'<div class="toh" style="color:'+setCol(setOf(p))+'">📁 '+esc(p.name)+'</div>':'')+xs.map(row).join(''); }).join('');
   if(sched.length){
-    h+='<div class="ts-sec"><div class="sl">💡 KA hôm nay</div>';
-    sched.slice().sort((a,b)=>(dueToday(a)?0:1)-(dueToday(b)?0:1)).forEach(b=>{ const g=G(b.gid),rest=b.rhythm!=='weekly'&&isRest(b,t),due=dueToday(b);
-      h+='<div class="ti '+(due?'wa':'')+(rest?' dim':'')+'" style="flex-wrap:wrap;align-items:center"><div class="f1" style="min-width:150px"><div class="tia">'+esc(b.name)+'</div><div class="tip">🎯 '+esc(g?g.name:'chưa gắn KR')+(multi&&g&&P(g.pid)?' · 📁 '+esc(P(g.pid).name):'')+(rest?' · hôm nay nghỉ':'')+'</div></div>'+kaCtl(b,t)+kaNote(b)+'</div>'; });
+    h+='<div class="ts-sec"><div class="sl">💡 KA hôm nay</div>'+byO(sched.slice().sort((a,b)=>(dueToday(a)?0:1)-(dueToday(b)?0:1)),b=>{ const rest=b.rhythm!=='weekly'&&isRest(b,t),due=dueToday(b);
+      return '<div class="kar'+(due?' due':'')+(rest?' dim':'')+'" data-ka="'+esc(b.id)+'"><div class="f1 kan1">'+esc(b.name)+(rest?' <span class="ovs" style="margin:0">· hôm nay nghỉ</span>':'')+'</div>'+kaCtl(b,t)+kaNote(b)+'</div>'; });
     if(inPlay.length&&doneN===inPlay.length) h+='<div class="wi ok"><div class="wig">🎉</div><div class="wib"><div class="wit">Đã đủ nhịp hôm nay</div><div class="wid">Mọi KA đến nhịp đều đã được ghi nhận.</div></div></div>';
     h+='</div>';
   }
-  const ev=bs.filter(b=>b.rhythm==='event');
-  if(ev.length){ h+='<div class="ts-sec"><div class="sl">🗓️ KA theo sự kiện</div>'; ev.forEach(b=>{ const g=G(b.gid); h+='<div class="ti" style="flex-wrap:wrap;align-items:center"><div class="f1" style="min-width:150px"><div class="tia">'+esc(b.name)+'</div><div class="tip">🎯 '+esc(g?g.name:'chưa gắn KR')+' · tuần này '+weekCount(b,t)+' lần</div></div>'+kaCtl(b,t)+'</div>'; }); h+='</div>'; }
+  const ev=bs.filter(b=>b.rhythm==='event'&&!kaLater(b));
+  if(ev.length) h+='<div class="ts-sec"><div class="sl">🗓️ KA theo sự kiện</div>'+byO(ev,b=>'<div class="kar" data-ka="'+esc(b.id)+'"><div class="f1 kan1">'+esc(b.name)+' <span class="ovs" style="margin:0">· tuần này '+weekCount(b,t)+' lần</span></div>'+kaCtl(b,t)+'</div>')+'</div>';
   h+=actDue();
   const soon=addD(t,7),urgent=ws.filter(w=>w.pri>=7&&!(w.aid&&A(w.aid)&&A(w.aid).deadline&&A(w.aid).deadline<=soon));
-  if(urgent.length){ h+='<div class="ts-sec"><div class="sl" style="color:var(--er)">🚨 Cần xử lý ('+urgent.length+')</div>'+urgent.slice(0,6).map(wcard).join('')+(urgent.length>6?'<div class="hint">Còn '+(urgent.length-6)+' mục nữa ở tab Phân Tích.</div>':'')+'</div>'; }
+  if(urgent.length){ h+='<div class="ts-sec"><div class="sl" style="color:var(--er)">🚨 Cần xử lý ('+urgent.length+')</div>'+urgent.slice(0,3).map(wcard).join('')+(urgent.length>3?'<button class="lnk" style="margin:0" data-a="tab" data-id="analyze">Xem cả '+urgent.length+' mục ở Phân Tích</button>':'')+'</div>'; }
   if(gs.length){
-    h+='<div class="ts-sec"><div class="sl">🎯 KR đang chạy</div>';
-    UI.pids.forEach(pid=>{ const p=P(pid),pg=gs.filter(g=>g.pid===pid); if(!p||!pg.length) return; if(multi) h+=oBar(p);
+    h+='<div class="ts-sec"><div class="sl">🎯 Ghi kết quả KR</div>';
+    UI.pids.forEach(pid=>{ const p=P(pid),pg=gs.filter(g=>g.pid===pid); if(!p||!pg.length) return; if(multi) h+='<div class="toh" style="color:'+setCol(setOf(p))+'">📁 '+esc(p.name)+'</div>';
       pg.forEach(g=>{ const st=gSt(g),gp=gPct(g),nid='gt-'+g.id;
-        h+='<div class="card '+(st.t==='nd'||st.t==='on'?'n':st.t)+'"><div class="row"><div class="f1 col"><div class="tm">'+esc(g.name)+'</div><div class="ts">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · '+KK[g.kind]+'</div></div><div style="text-align:right;flex-shrink:0"><div class="mono tp">'+gp+'%</div><div style="font-size:11px;color:var(--t3);font-family:\'Space Mono\',monospace;font-weight:bold;margin-top:4px">'+st.l+'</div></div>'+togBtn(nid)+'</div>'+nest(nid,krUpdate(g,'tl-',false))+'</div>'; }); });
+        h+='<div class="krr"><div class="row" style="gap:8px"><div class="f1"><div class="kan1">'+esc(g.name)+'</div><div class="ovs" style="margin:2px 0 0">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · <span class="t'+(st.t==='on'||st.t==='nd'?'p':st.t)+'">'+st.l+'</span></div></div><span class="ovv tp">'+gp+'%</span>'+togBtn(nid)+'</div>'+nest(nid,krUpdate(g,'tl-',false))+'</div>'; }); });
     h+='</div>';
   }
   el.innerHTML=h+legacyCard();
 };
 
-/* ---------------- KR ---------------- */
+/* ---------------- OKR: O → KR → KA trên một trang ---------------- */
 VIEWS.goals=function(){
   const el=$('c-goals'); if(!UI.pids.length){ el.innerHTML=noSel('🎯'); return; }
-  let h='<div class="adr"><div class="sl" style="margin:0">Kết quả then chốt (KR)</div><button class="abtn" data-a="newG">＋ KR</button></div>';
+  const bs=selBehs();
+  let h='<div class="adr"><div class="sl" style="margin:0">O → KR → KA</div><div style="display:flex;gap:8px"><button class="mb p" data-a="newG">＋ KR</button><button class="mb p" data-a="newB">＋ KA</button></div></div>';
+  { const cv=calView(); if(cv){ const t0=td(),dd=bs.filter(b=>(b.rhythm==='daily'||b.rhythm==='multi')&&!b.habit&&!kaLater(b)&&!isRest(b,t0)); h+='<details class="dt sec" id="cal-sec" data-k="cal"'+(OPEN.has('cal')?' open':'')+'><summary>📅 Lịch KA theo tuần, tháng · hôm nay đã tích '+dd.filter(b=>dayDone(b,t0)).length+'/'+dd.length+'</summary>'+cv+'</details>'; } }
   UI.pids.forEach(pid=>{ const p=P(pid); if(!p) return; const gs=liveGoals(pid),ar=DB.goals.filter(g=>g.pid===pid&&g.archived),pp=pPct(pid),thr=oThr(p),ok=pp!==null&&pp/100>=thr;
-    h+=oBar(p,'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0"><div style="text-align:right;font-family:\'Space Mono\',monospace"><div style="font-weight:bold;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':fmt(pp/100))+'</div><div style="font-size:11px;color:var(--t3)">đạt ở '+fmt(thr)+'</div></div><button class="mb" style="padding:6px 9px" data-a="closeO" data-id="'+esc(p.id)+'" title="Chốt chu kỳ, chấm điểm">🏁</button><button class="mb" style="padding:6px 9px" data-a="eProj" data-id="'+esc(p.id)+'" title="Sửa, lưu trữ hoặc xóa O">✏️</button></div>');
+    h+=oBar(p,'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div style="text-align:right;font-family:\'Space Mono\',monospace"><div style="font-weight:bold;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':fmt(pp/100))+'</div><div style="font-size:11px;color:var(--t3)">đạt ở '+fmt(thr)+'</div></div><button class="mb" style="padding:6px 9px" data-a="closeO" data-id="'+esc(p.id)+'" title="Chốt chu kỳ, chấm điểm">🏁</button><button class="mb" style="padding:6px 9px" data-a="eProj" data-id="'+esc(p.id)+'" title="Sửa, lưu trữ hoặc xóa O">✏️</button></div>');
     h+=oPaceLine(pid,'margin:-4px 0 12px');
     if(p.desc) h+='<div class="hint" style="margin:-4px 0 12px">'+esc(p.desc)+'</div>';
     if(!gs.length) h+='<div class="card" style="text-align:center;color:var(--t3);font-style:italic">O này chưa có KR nào đang chạy.</div>';
     const W=gs.reduce((a,g)=>a+(g.weight>0?g.weight:0),0); if(W>0&&gs.some(g=>!(g.weight>0))) h+='<div class="hint" style="margin-bottom:10px">Có KR chưa đặt trọng số nên không được tính vào điểm của O. Đặt đủ, hoặc bỏ trống hết để chia đều.</div>';
-    gs.forEach(g=>{ h+=gCard(g,p); });
+    gs.forEach(g=>{ h+=gCard(g,p); const kas=bs.filter(b=>b.gid===g.id); h+='<div class="kas">'+(kas.length?kas.map(bCard).join(''):'<div class="hint" style="margin:0 0 12px">KR này chưa có KA. <button class="lnk" style="margin:0" data-a="newB" data-id="'+esc(g.id)+'">＋ Thêm KA</button></div>')+'</div>'; });
     if(ar.length){ const k='arg-'+pid; h+='<button class="lnk" data-a="more" data-id="'+esc(k)+'" style="margin:0 0 8px">📦 KR đã lưu trữ ('+ar.length+') '+(OPEN.has(k)?'▲':'▼')+'</button>'; if(OPEN.has(k)) h+=ar.map(g=>arcRow('🎯 '+g.name,gPct(g)+'%'+(g.archived_at?' · lưu trữ '+fd(g.archived_at):''),'unG','dGoal',g.id)).join(''); } });
+  const orph=DB.behaviors.filter(b=>!b.archived&&!G(b.gid)&&(UI.pids.includes(b.pid||'')||!P(b.pid||'')));
+  if(orph.length) h+='<div class="sl" style="color:var(--wa);margin:22px 0 10px">⚠️ KA chưa gắn KR</div><div class="hint" style="margin:-4px 0 10px">Bấm Sửa để gắn vào một KR, hoặc xóa.</div>'+orph.map(bCard).join('');
+  const arB=DB.behaviors.filter(b=>b.archived&&!(G(b.gid)&&G(b.gid).archived)&&UI.pids.includes(bPid(b)));
+  if(arB.length){ const k='arb'; h+='<button class="lnk" data-a="more" data-id="'+k+'" style="margin:8px 0">📦 KA đã lưu trữ ('+arB.length+') '+(OPEN.has(k)?'▲':'▼')+'</button>'+(OPEN.has(k)?arB.map(b=>arcRow('💡 '+b.name,(G(b.gid)?'🎯 '+G(b.gid).name:'')+(b.archived_at?' · lưu trữ '+fd(b.archived_at):''),'unB','dBeh',b.id)).join(''):''); }
   el.innerHTML=h;
 };
+VIEWS.behav=VIEWS.goals;
 function gCard(g,p){
   const gp=gPct(g),cur=gCur(g),tg=gTarget(g),tp=tPct(g),st=gSt(g),dl=dL(g),id=esc(g.id),nid='gd-'+g.id,sb=(l,v,s)=>'<div class="sb2"'+(s||'')+'><div class="sbl">'+l+'</div><div class="sbv">'+v+'</div></div>';
-  let h='<div class="card '+(st.t==='nd'||st.t==='on'?'n':st.t)+'"><div class="row top"><div class="f1 col"><div class="tm">🎯 '+esc(g.name)+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span class="gap '+st.t+'">'+gp+'% '+st.l+'</span><span class="ts">'+KK[g.kind]+(g.unit?' · '+esc(g.unit):'')+(g.weight>0?' · trọng số '+fmt(g.weight):'')+'</span></div></div>'+togBtn(nid)+'</div><div class="pb"><div class="pf '+st.t+'" style="width:'+gp+'%"></div></div>';
+  let h='<div class="card '+(st.t==='nd'||st.t==='on'?'n':st.t)+'"><div class="row top"><div class="f1 col"><div class="tm">🎯 '+esc(g.name)+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px"><span class="gap '+st.t+'">'+gp+'% '+st.l+'</span><span class="ts" style="font-size:13px">'+fmt(cur)+' / '+fmt(tg)+(g.unit?' '+esc(g.unit):'')+'</span></div></div>'+togBtn(nid)+'</div><div class="pb"><div class="pf '+st.t+'" style="width:'+gp+'%"></div></div>';
   let d='<div class="sg">'+sb('Hiện tại','<span class="tp">'+fmt(cur)+'</span>')+sb('Đích','<span class="tp">'+fmt(tg)+'</span>')+sb('Điểm',fmt(gScore(g))+' <span style="font-size:11px;color:var(--t3)">đạt ở '+fmt(oThr(p))+'</span>')+sb('Còn lại',fmt(Math.max(0,tg-cur)))+(gStart(g)?sb('Bắt đầu',fd(gStart(g))+(g.start_date?'':' <span style="font-size:11px;color:var(--t3)">theo O</span>')):'')+(gEnd(g)?sb('Hạn','<span style="color:'+(dl<=7?'var(--er)':'inherit')+'">'+fd(gEnd(g))+' '+(dl<0?'(quá '+(-dl)+' ngày)':'(còn '+dl+' ngày)')+'</span>'+(g.deadline?'':' <span style="font-size:11px;color:var(--t3)">theo O</span>')):'')+'</div>';
-  const meta=[['Ý nghĩa',g.why],['Cách đo',g.measure],['Thời điểm đo',g.measure_when],['Người xác nhận',g.confirmer]].filter(x=>x[1]); if(meta.length) d+='<div style="margin-top:10px;font-size:13.5px;color:var(--t2)">'+meta.map(x=>'<div><span style="color:var(--t3)">'+x[0]+':</span> '+esc(x[1])+'</div>').join('')+'</div>';
+  const meta=[['Kiểu đo',KK[g.kind]+(g.weight>0?' · trọng số '+fmt(g.weight):'')],['Ý nghĩa',g.why],['Cách đo',g.measure],['Thời điểm đo',g.measure_when],['Người xác nhận',g.confirmer]].filter(x=>x[1]); d+='<div style="margin-top:10px;font-size:13.5px;color:var(--t2)">'+meta.map(x=>'<div><span style="color:var(--t3)">'+x[0]+':</span> '+esc(x[1])+'</div>').join('')+'</div>';
   if(tp!==null) d+='<div class="dbar-wrap"><div class="dbar-row"><span class="dbl">Kết quả</span><div class="db"><div class="dbf" style="width:'+gp+'%;background:var(--'+(st.t==='on'?'p':st.t==='nd'?'b2':st.t)+')"></div></div><span class="dbp mono tp">'+gp+'%</span></div><div class="dbar-row"><span class="dbl">Thời gian</span><div class="db"><div class="dbf" style="width:'+tp+'%;background:var(--b2)"></div></div><span class="dbp mono" style="color:var(--t3)">'+tp+'%</span></div></div>';
   if(st.spd) d+='<div class="ovs" data-pace="'+id+'">Tốc độ '+fmt(st.spd)+' = kết quả '+gp+'% ÷ thời gian '+tp+'% · 1,0 là đúng nhịp</div>';
   const nl=needLine(g); if(nl) d+='<div class="hint" data-need="'+id+'" style="font-size:13.5px">'+esc(nl)+'</div>';
-  d+='<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--b1)"><div class="sl" style="font-size:11px;margin-bottom:10px">Ghi nhận kết quả</div>'+krUpdate(g,'gl-',true)+'</div>';
+  d+='<div class="krup" style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--b1)"><div class="sl" style="font-size:11px;margin-bottom:10px">Ghi nhận kết quả</div>'+krUpdate(g,'gl-',true)+'</div>';
   if(g.kind==='sum'){ const ls=DB.logs.filter(l=>l.gid===g.id).sort((a,b)=>(b.date+b.updatedAt).localeCompare(a.date+a.updatedAt)),all=OPEN.has('lg-'+g.id),sh=all?ls:ls.slice(0,5);
     d+=sh.map(l=>'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b1);font-size:13px"><span style="color:var(--t3);font-family:\'Space Mono\',monospace;width:44px;flex-shrink:0;font-size:11px">'+fd(l.date)+'</span><span style="color:var(--p);font-weight:bold;font-family:\'Space Mono\',monospace">+'+fmt(l.value)+'</span><span style="flex:1;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.note)+'</span><button class="mb er" data-a="delLog" data-id="'+esc(l.id)+'" style="padding:4px 8px;font-size:11px">✕</button></div>').join('');
     if(ls.length>5) d+='<button class="lnk" data-a="more" data-id="lg-'+id+'" style="margin-top:8px">'+(all?'Thu gọn':'Xem tất cả '+ls.length+' dòng')+'</button>'; }
-  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="newB" data-id="'+id+'">＋ Thêm KA</button><button class="mb" data-a="eGoal" data-id="'+id+'">✏️ Sửa</button><button class="mb" data-a="arcG" data-id="'+id+'">📦 Lưu trữ</button><button class="mb er" data-a="dGoal" data-id="'+id+'">🗑 Xóa</button></div>';
+  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="newB" data-id="'+id+'">＋ Thêm KA</button><button class="mb" data-a="eGoal" data-id="'+id+'">✏️ Sửa, lưu trữ, xóa</button></div>';
   return h+nest(nid,d)+'</div>';
 }
-
-/* ---------------- KA ---------------- */
-VIEWS.behav=function(){
-  const el=$('c-behav'); if(!UI.pids.length){ el.innerHTML=noSel('💡'); return; }
-  const bs=selBehs(),multi=UI.pids.length>1;
-  let h='<div class="adr"><div class="sl" style="margin:0">Hành vi then chốt (KA)</div><button class="abtn" data-a="newB">＋ KA</button></div>';
-  const arB=DB.behaviors.filter(b=>b.archived&&!(G(b.gid)&&G(b.gid).archived)&&UI.pids.includes(bPid(b)));
-  const arSec=()=>{ if(!arB.length) return ''; const k='arb'; return '<button class="lnk" data-a="more" data-id="'+k+'" style="margin:8px 0">📦 KA đã lưu trữ ('+arB.length+') '+(OPEN.has(k)?'▲':'▼')+'</button>'+(OPEN.has(k)?arB.map(b=>arcRow('💡 '+b.name,(G(b.gid)?'🎯 '+G(b.gid).name:'')+(b.archived_at?' · lưu trữ '+fd(b.archived_at):''),'unB','dBeh',b.id)).join(''):''); };
-  h+=calView();
-  if(!bs.length){ el.innerHTML=h+'<div class="empty"><div class="ei">💡</div><h3>Chưa có KA đang chạy</h3><p>KA là cầu nối giữa kết quả và hành động: làm đều thì KR nhích.</p></div>'+arSec(); return; }
-  UI.pids.forEach(pid=>{ const p=P(pid); if(!p) return; const gs=DB.goals.filter(g=>g.pid===pid&&bs.some(b=>b.gid===g.id)); if(!gs.length) return; if(multi) h+=oBar(p);
-    gs.forEach(g=>{ h+='<div style="margin-bottom:22px"><div class="sl" style="color:var(--t3);margin-bottom:10px">🎯 '+esc(g.name)+' <span class="badge '+(gSt(g).t==='on'||gSt(g).t==='nd'?'p':gSt(g).t)+'">'+gPct(g)+'%</span></div>'+bs.filter(b=>b.gid===g.id).map(bCard).join('')+'</div>'; }); });
-  const orph=DB.behaviors.filter(b=>!b.archived&&!G(b.gid)&&(UI.pids.includes(b.pid||'')||!P(b.pid||'')));
-  if(orph.length) h+='<div class="sl" style="color:var(--wa);margin:22px 0 10px">⚠️ KA chưa gắn KR</div><div class="hint" style="margin:-4px 0 10px">Bấm Sửa để gắn vào một KR, hoặc xóa.</div>'+orph.map(bCard).join('');
-  el.innerHTML=h+arSec();
-};
 const arcRow=(name,sub,un,dl,id)=>'<div class="ni dim" style="display:flex;align-items:center;gap:10px"><div class="f1"><div style="font-weight:bold;font-size:14px">'+esc(name)+'</div><div style="font-size:12px;color:var(--t3)">'+esc(sub)+'</div></div><button class="mb ok" style="padding:6px 10px;font-size:11px" data-a="'+un+'" data-id="'+esc(id)+'">Khôi phục</button><button class="mb er" style="padding:6px 10px;font-size:11px" data-a="'+dl+'" data-id="'+esc(id)+'">Xóa</button></div>';
 function bCard(b){
   const id=esc(b.id),nid='bn-'+b.id,t=td(),done=!dueToday(b)&&b.rhythm!=='event',as=DB.actions.filter(a=>a.bid===b.id),blk=as.filter(a=>a.status==='blocked').length,str=streak(b);
   const rl=RH[b.rhythm]+(b.rhythm==='weekly'?' · '+b.quota+' lần':'')+(b.rhythm==='multi'?' · '+slotsOf(b).length+' lần':'')+((b.rhythm==='daily'||b.rhythm==='multi')&&restSet(b).size?' · nghỉ '+[...restSet(b)].sort().map(i=>WD[i]).join(', '):'');
-  let h='<div class="card '+(b.habit?'n dim':done?'ok':'n')+'"><div class="row" style="flex-wrap:wrap"><div class="f1 col" style="min-width:150px"><div class="tm">💡 '+esc(b.name)+'</div><div class="ts">'+esc(rl)+(b.habit?' · đã thành nếp':'')+(kaStart(b)?' · '+(kaLater(b)?'bắt đầu ':'từ ')+fd(kaStart(b)):'')+'</div></div>'+kaCtl(b,t)+togBtn(nid)+'</div>'+coverStrip(b);
+  let h='<div class="card kac '+(b.habit?'n dim':done?'ok':'n')+'"><div class="row" style="flex-wrap:wrap;gap:10px"><div class="f1 col" style="min-width:150px"><div class="tm" style="font-size:14.5px">💡 '+esc(b.name)+'</div><div class="ts" style="font-size:12.5px">'+esc(rl)+(b.habit?' · đã thành nếp':'')+(b.rhythm!=='event'&&str?' · 🔥 '+str:'')+(kaStart(b)?' · '+(kaLater(b)?'bắt đầu ':'từ ')+fd(kaStart(b)):'')+'</div></div>'+kaCtl(b,t)+togBtn(nid)+'</div>'+coverStrip(b);
   h+=kaNote(b);
-  if(b.rhythm!=='event') h+='<div class="d7s">'+last7(b).map(x=>'<div class="d7 '+x.c+'" title="'+fd(x.d)+'">'+WD[pd(x.d).getDay()]+(b.rhythm==='weekly'&&x.n>1?'·'+x.n:'')+'</div>').join('')+'</div>';
-  let d=(b.desc?'<div class="hint" style="margin:0 0 10px;font-size:13.5px">'+esc(b.desc)+'</div>':'')+'<div class="strow"><div class="sb3"><div class="sb3n" style="color:'+(str?'var(--p)':'var(--t3)')+'">'+str+'</div><div class="sb3l">'+(b.rhythm==='weekly'?'Tuần đạt liền':'Chuỗi ngày')+'</div></div><div class="sb3"><div class="sb3n tp">'+(b.rhythm==='multi'?fullDays(b):cisOf(b.id).length)+'</div><div class="sb3l">'+(b.rhythm==='multi'?'Ngày làm đủ':'Tổng lần')+'</div></div><div class="sb3"><div class="sb3n" style="color:'+(blk?'var(--er)':'var(--t1)')+'">'+as.length+'</div><div class="sb3l">Hành động'+(blk?' · '+blk+' chặn':'')+'</div></div></div>';
+  let d=(b.desc?'<div class="hint" style="margin:0 0 10px;font-size:13.5px">'+esc(b.desc)+'</div>':'');
+  if(b.rhythm!=='event') d+='<div class="d7s" style="margin-top:0">'+last7(b).map(x=>'<div class="d7 '+x.c+'" title="'+fd(x.d)+'">'+WD[pd(x.d).getDay()]+(b.rhythm==='weekly'&&x.n>1?'·'+x.n:'')+'</div>').join('')+'</div>';
+  d+='<div class="strow"><div class="sb3"><div class="sb3n" style="color:'+(str?'var(--p)':'var(--t3)')+'">'+str+'</div><div class="sb3l">'+(b.rhythm==='weekly'?'Tuần đạt liền':'Chuỗi ngày')+'</div></div><div class="sb3"><div class="sb3n tp">'+(b.rhythm==='multi'?fullDays(b):cisOf(b.id).length)+'</div><div class="sb3l">'+(b.rhythm==='multi'?'Ngày làm đủ':'Tổng lần')+'</div></div><div class="sb3"><div class="sb3n" style="color:'+(blk?'var(--er)':'var(--t1)')+'">'+as.length+'</div><div class="sb3l">Hành động'+(blk?' · '+blk+' chặn':'')+'</div></div></div>';
   const ms=[['Mốc 1 · thử',b.m1],['Mốc 2 · bỏ cái thừa',b.m2],['Mốc 3 · thành nếp',b.m3]].filter(x=>x[1]); if(ms.length) d+='<div style="margin-top:12px;font-size:13.5px;color:var(--t2)">'+ms.map(x=>'<div><span style="color:var(--t3)">'+x[0]+':</span> '+esc(x[1])+'</div>').join('')+'</div>';
-  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="addAct" data-id="'+id+'">＋ Hành động</button><button class="mb" data-a="bf" data-id="'+id+'">📅 Ngày khác</button><button class="mb" data-a="eBeh" data-id="'+id+'">✏️ Sửa</button><button class="mb" data-a="arcB" data-id="'+id+'">📦 Lưu trữ</button><button class="mb er" data-a="dBeh" data-id="'+id+'">🗑 Xóa</button></div>';
+  d+='<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="mb p" data-a="addAct" data-id="'+id+'">＋ Hành động</button><button class="mb" data-a="bf" data-id="'+id+'">📅 Ngày khác</button><button class="mb" data-a="eBeh" data-id="'+id+'">✏️ Sửa, lưu trữ, xóa</button></div>';
   return h+nest(nid,d)+'</div>';
 }
 
@@ -1071,19 +1104,21 @@ function bCard(b){
 VIEWS.actions=function(){
   const el=$('c-actions'); if(!UI.pids.length){ el.innerHTML=noSel('⚡'); return; }
   const all=selActs().concat(DB.actions.filter(a=>!B(a.bid)&&!P(a.pid||''))),multi=UI.pids.length>1;   // kèm hành động mồ côi của bản cũ
-  const chips='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:12px;scrollbar-width:none">'+['Tất cả'].concat(SRC.map(s=>s.e+' '+s.n)).map((l,i)=>'<div class="qc" style="white-space:nowrap;'+(UI.asrc===i?'border-color:var(--p);background:var(--pg);color:var(--p)':'')+'" data-a="asrc" data-v="'+i+'">'+l+'</div>').join('')+'</div>';
+  const chips='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:6px;scrollbar-width:none">'+['Tất cả'].concat(SRC.map(s=>s.e+' '+s.n)).map((l,i)=>'<div class="qc" style="white-space:nowrap;'+(UI.asrc===i?'border-color:var(--p);background:var(--pg);color:var(--p)':'')+'" data-a="asrc" data-v="'+i+'">'+l+'</div>').join('')+'</div>';
   const as=UI.asrc>0?all.filter(a=>a.source===UI.asrc):all; let cards='';
   if(!as.length) cards='<div class="empty"><div class="ei">⚡</div><h3>Chưa có hành động</h3><p>Mỗi hành động đỡ một KA và thuộc 1 trong 6 nguồn ảnh hưởng.</p></div>';
-  else { const grp=list=>UI.asrc===0?SRC.map(s=>{const sa=list.filter(a=>a.source===s.id);return sa.length?'<div style="margin-bottom:20px"><div class="sl" style="color:var(--t3);margin-bottom:8px;font-size:12px">'+s.e+' Nguồn '+s.id+' · '+s.s+'</div>'+sa.map(acCard).join('')+'</div>':'';}).join(''):list.map(acCard).join('');
+  else { const grp=list=>UI.asrc===0?SRC.map(s=>{const sa=list.filter(a=>a.source===s.id);return sa.length?'<div style="margin-bottom:16px"><div class="sl" style="color:var(--t3);margin-bottom:4px;font-size:12px">'+s.e+' Nguồn '+s.id+' · '+s.s+' <span style="font-weight:400">('+sa.filter(a=>a.status==='done').length+'/'+sa.length+' xong)</span></div>'+sa.map(acCard).join('')+'</div>':'';}).join(''):list.map(acCard).join('');
     if(multi){ UI.pids.forEach(pid=>{ const pa=as.filter(a=>aPid(a)===pid),p=P(pid); if(p&&pa.length) cards+=oBar(p)+grp(pa); }); const rest=as.filter(a=>!UI.pids.includes(aPid(a))); if(rest.length) cards+='<div class="sl" style="color:var(--wa);margin:22px 0 10px">⚠️ Hành động chưa gắn KA</div>'+grp(rest); }
     else cards=grp(as); }
-  el.innerHTML='<div class="adr"><div class="sl" style="margin:0">Hành động theo 6 nguồn</div><button class="abtn" data-a="addAct">＋ HÀNH ĐỘNG</button></div>'+chips+cards;
+  el.innerHTML='<div class="adr"><div class="sl" style="margin:0">Hành động theo 6 nguồn</div><button class="mb p" data-a="addAct">＋ Hành động</button></div><div class="hint" style="margin:-8px 0 10px">Chạm ô vuông để đánh dấu xong; chạm tên để sửa, đổi trạng thái, xóa.</div>'+chips+cards;
 };
 ACT.asrc=(id,v)=>{ UI.asrc=Math.min(6,Math.max(0,Math.round(num(v)))); LS.set(K.ui,UI); render(); };
 function acCard(a){
-  const s=SRC[a.source-1],st=ST[a.status],b=B(a.bid),g=b?G(b.gid):null,id=esc(a.id),late=a.status!=='done'&&a.deadline&&a.deadline<td();
-  return '<div class="card '+(a.status==='blocked'?'er':a.status==='done'?'ok':'n')+'"><div class="row top"><div class="ic" style="background:var(--c2)">'+s.e+'</div><div class="f1 col"><div class="tm">'+esc(a.name)+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="badge '+st.c+'">'+st.l+'</span><span class="badge n">'+s.n+'</span>'+(a.assignee?'<span class="badge n">👤 '+esc(a.assignee)+'</span>':'')+(a.deadline?'<span class="badge '+(late?'er':'n')+'">📅 '+fd(a.deadline)+(late?' quá hạn':'')+'</span>':'')+'</div>'+(b?'<div style="font-size:12px;color:var(--t3);margin-top:6px;font-style:italic">💡 '+esc(b.name)+(g?' → 🎯 '+esc(g.name):'')+'</div>':'<div style="font-size:12px;color:var(--wa);margin-top:6px;font-style:italic">Chưa gắn KA</div>')+(a.note?'<div style="font-size:13px;color:var(--t2);margin-top:6px;background:rgba(0,0,0,0.2);padding:8px;border-radius:6px">📝 '+esc(a.note)+'</div>':'')+'</div><div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0"><button class="mb" style="padding:8px" data-a="cyc" data-id="'+id+'">⟳ Trạng thái</button><button class="mb" style="padding:8px" data-a="eAct" data-id="'+id+'">✏️ Sửa</button><button class="mb er" style="padding:8px" data-a="dAct" data-id="'+id+'">🗑 Xóa</button></div></div></div>';
+  const s=SRC[a.source-1],b=B(a.bid),id=esc(a.id),done=a.status==='done',late=!done&&a.deadline&&a.deadline<td();
+  const sub=[b?'💡 '+esc(b.name):'<span class="twa">Chưa gắn KA</span>',a.status==='blocked'?'<span class="ter">🚫 bị chặn</span>':'',a.assignee?'👤 '+esc(a.assignee):'',a.deadline?'<span class="'+(late?'ter':'')+'">📅 '+fd(a.deadline)+(late?' quá hạn':'')+'</span>':''].filter(Boolean).join(' · ');
+  return '<div class="acr'+(a.status==='blocked'?' blk':'')+(done?' done':'')+'" data-act="'+id+'"><button class="ck'+(done?' on':'')+'" data-a="actTog" data-id="'+id+'" title="'+(done?'Bỏ đánh dấu xong':'Đánh dấu xong')+'" aria-label="'+(done?'Bỏ đánh dấu xong':'Đánh dấu xong')+'">'+(done?'✓':'')+'</button><div class="f1" data-a="eAct" data-id="'+id+'" style="cursor:pointer"><div class="acn">'+s.e+' '+esc(a.name)+'</div><div class="ads">'+sub+'</div></div></div>';
 }
+ACT.actTog=id=>{ const a=A(id); if(!a) return; put('actions',Object.assign({},a,{status:a.status==='done'?'pending':'done'})); commit(); };
 ACT.cyc=id=>{ const a=A(id); if(!a) return; put('actions',Object.assign({},a,{status:{pending:'done',done:'blocked',blocked:'pending'}[a.status]||'pending'})); commit(); };
 ACT.dAct=id=>askDel('Xóa hành động này?','',()=>{ del('actions',id); commit(); });
 
@@ -1095,34 +1130,38 @@ VIEWS.analyze=function(){
   h+=overview();
   if(UI.pids.length){
     const gs=selGoals(),bs=selBehs(),as=selActs(),ws=warns();
-    h+='<div class="sl" style="margin:26px 0 12px">Độ phủ 6 nguồn theo từng KA</div>';
+    h+='<details class="dt sec" id="cov-sec"'+(OPEN.has('cov')?' open':'')+' data-k="cov"><summary>🧩 Độ phủ 6 nguồn theo từng KA ('+bs.length+' KA · '+bs.filter(b=>cover(b).every(x=>x.n>0)).length+' đủ 6 nguồn)</summary>';
     if(!bs.length) h+='<div class="hint">Chưa có KA nào.</div>';
-    else { h+='<div class="hint" style="margin:-6px 0 10px">Chạm vào một ô để thêm hành động cho nguồn đó.</div>'; bs.forEach(b=>{ const g=G(b.gid); h+='<div class="ni"><div style="font-weight:bold;font-size:14px">💡 '+esc(b.name)+'</div><div style="font-size:12px;color:var(--t3)">🎯 '+esc(g?g.name:'chưa gắn KR')+'</div>'+coverStrip(b)+'</div>'; }); }
-    h+='<div class="sl" style="margin:24px 0 12px">Cảnh báo</div>'+(ws.length?ws.map(wcard).join(''):'<div class="wi ok"><div class="wig">🎉</div><div class="wib"><div class="wit">Không có cảnh báo</div><div class="wid">KR đúng tiến độ, KA giữ nhịp, 6 nguồn đã phủ.</div></div></div>');
+    else { h+='<div class="hint" style="margin:6px 0 10px">Chạm vào một ô để thêm hành động cho nguồn đó.</div>'; bs.forEach(b=>{ const g=G(b.gid); h+='<div class="ni"><div style="font-weight:bold;font-size:14px">💡 '+esc(b.name)+'</div><div style="font-size:12px;color:var(--t3)">🎯 '+esc(g?g.name:'chưa gắn KR')+'</div>'+coverStrip(b)+'</div>'; }); }
+    h+='</details><details class="dt sec" id="warn-sec"'+(OPEN.has('warn')?' open':'')+' data-k="warn"><summary>⚠️ Cảnh báo ('+ws.length+')</summary>'+(ws.length?ws.map(wcard).join(''):'<div class="wi ok"><div class="wig">🎉</div><div class="wib"><div class="wit">Không có cảnh báo</div><div class="wid">KR đúng tiến độ, KA giữ nhịp, 6 nguồn đã phủ.</div></div></div>')+'</details>';
   } else if(!actP().length) h+=noSel('📊');
   const leg=legacyData();
-  h+='<div class="sl" style="margin:32px 0 14px;border-top:1px dashed var(--b1);padding-top:22px;color:var(--ok)">⚙️ Hệ thống và dữ liệu</div><div class="card" style="display:flex;flex-direction:column;gap:12px"><p style="font-size:13.5px;color:var(--t2)">'+(AUTH.local?'Đang dùng trên máy này, chưa nối kho dữ liệu: dữ liệu chỉ nằm trong trình duyệt này.':'Kho dữ liệu: đã nối. '+(OUT.length?OUT.length+' thay đổi đang chờ gửi'+(syncErr?' (mất kết nối, sẽ tự gửi lại).':'.'):'Mọi thay đổi đã được gửi lên kho.')+(lastSync?' Lần đồng bộ gần nhất: '+new Date(lastSync).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+'.':''))+' Dữ liệu trên máy không được mã hóa; hãy tải bản sao lưu định kỳ.</p>'+(AUTH.local?'<button class="bp" data-a="connect">☁ Nối kho dữ liệu</button>':'')+'<button class="bp" data-a="imp">📥 Nhập O, KR, KA, hành động từ Excel</button><button class="bp" style="background:rgba(253,185,19,.15);color:var(--p);border:1px solid var(--p)" data-a="backup">📥 Tải bản sao lưu (.json)</button><button class="bp" style="background:rgba(0,167,157,.15);color:var(--ok);border:1px solid var(--ok)" data-a="restore">📤 Khôi phục từ file</button>'+(leg?'<button class="bp" style="background:transparent;color:var(--t1);border:1px solid var(--b2)" data-a="impLegacy">📦 Nhập dữ liệu bản cũ trên máy này ('+leg.goals.length+' mục tiêu)</button>':'')+'<div style="border-top:1px solid var(--b1);margin:4px 0"></div><button class="bd" style="width:100%" data-a="logout">🔒 '+(AUTH.local?'Xóa dữ liệu và khóa':'Đăng xuất')+'</button></div>';
+  h+='<div class="sl" style="margin:32px 0 14px;border-top:1px dashed var(--b1);padding-top:22px;color:var(--ok)">⚙️ Hệ thống và dữ liệu</div><div class="card" style="display:flex;flex-direction:column;gap:12px"><p style="font-size:13.5px;color:var(--t2)">'+(AUTH.local?'Đang dùng trên máy này, chưa nối kho dữ liệu: dữ liệu chỉ nằm trong trình duyệt này.':'Kho dữ liệu: đã nối. '+(OUT.length?OUT.length+' thay đổi đang chờ gửi'+(syncErr?' (mất kết nối, sẽ tự gửi lại).':'.'):'Mọi thay đổi đã được gửi lên kho.')+(lastSync?' Lần đồng bộ gần nhất: '+new Date(lastSync).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+'.':''))+' Dữ liệu trên máy không được mã hóa; hãy tải bản sao lưu định kỳ.</p>'+(AUTH.local?'<button class="bp" data-a="connect">☁ Nối kho dữ liệu</button>':'')+shareBox()+'<button class="bp" data-a="imp">📥 Nhập O, KR, KA, hành động từ Excel</button><button class="bp" style="background:rgba(253,185,19,.15);color:var(--p);border:1px solid var(--p)" data-a="backup">📥 Tải bản sao lưu (.json)</button><button class="bp" style="background:rgba(0,167,157,.15);color:var(--ok);border:1px solid var(--ok)" data-a="restore">📤 Khôi phục từ file</button>'+(leg?'<button class="bp" style="background:transparent;color:var(--t1);border:1px solid var(--b2)" data-a="impLegacy">📦 Nhập dữ liệu bản cũ trên máy này ('+leg.goals.length+' mục tiêu)</button>':'')+'<div style="border-top:1px solid var(--b1);margin:4px 0"></div>'+(AUTH.ro?'<button class="bp" data-a="edMode">🔓 Mở quyền sửa trên máy này</button>':'<button class="bd" style="width:100%" data-a="logout">🔒 '+(AUTH.local?'Xóa dữ liệu và khóa':'Thôi quyền sửa trên máy này')+'</button>')+'</div>';
   el.innerHTML=h;
 };
 const oPaceLine=(pid,mg)=>{ const s=oSt(pid); return '<div class="opl" data-op="'+esc(pid)+'" style="'+mg+'"><span class="gap '+s.t+'">'+esc(s.l)+'</span>'+(s.tp!==undefined?'<span class="ovs" style="margin:0">kết quả '+Math.round(s.rp)+'% · thời gian '+Math.round(s.tp)+'%'+(s.spd?' · tốc độ '+fmt(s.spd):'')+'</span>':'')+'</div>'; };
 const paceHelp=()=>'<details class="dt" id="pace-help"><summary>Cách chấm nhanh, chậm</summary><div class="ni" style="margin-top:8px;font-size:14px;line-height:1.55;color:var(--t2)"><div><b>Tiến độ kết quả</b> = đạt ÷ đích. <b>Tiến độ thời gian</b> = số ngày đã qua ÷ tổng số ngày của kỳ.</div><div style="margin-top:6px"><b>Tốc độ</b> = kết quả ÷ thời gian. 1,0 là đúng nhịp.</div><div style="margin-top:6px"><span class="tok">Nhanh</span>: từ '+fmt(PACE.fast)+' · <span class="tp">Đúng tiến độ</span>: '+fmt(PACE.slow)+' đến dưới '+fmt(PACE.fast)+' · <span class="twa">Chậm</span>: '+fmt(PACE.bad)+' đến dưới '+fmt(PACE.slow)+' · <span class="ter">Chậm nhiều</span>: dưới '+fmt(PACE.bad)+'</div><div style="margin-top:6px">Chênh dưới '+PACE.tol+' điểm % vẫn tính là đúng tiến độ, để những ngày đầu kỳ không báo oan. Con số sau chữ Nhanh, Chậm là số điểm % kết quả hơn hoặc kém thời gian.</div><div style="margin-top:6px">KR không có ngày riêng thì tính theo ngày của O. O được chấm bằng cách gộp các KR theo trọng số, mỗi KR tính theo kỳ riêng của nó. Quá hạn mà chưa đủ 100% thì báo quá hạn.</div></div></details>';
-/* Tổng quan quản trị: mọi O đang chạy → KR → KA, kèm % hoàn thành; không phụ thuộc bộ lọc O đang xem */
+/* Tổng quan quản trị: mọi O đang chạy, nhóm theo bộ OKR (vai trò) → KR → KA; không phụ thuộc bộ lọc đang xem */
 function overview(){
   const os=actP(); if(!os.length) return '';
   const gsAll=DB.goals.filter(g=>!g.archived&&os.some(p=>p.id===g.pid)),bsAll=DB.behaviors.filter(b=>bLive(b)&&os.some(p=>p.id===bPid(b))),asAll=DB.actions.filter(a=>aLive(a)&&os.some(p=>p.id===aPid(a)));
-  const xs=os.map(p=>pPct(p.id)).filter(x=>x!==null),tot=xs.length?Math.round(xs.reduce((a,c)=>a+c,0)/xs.length):null,c={d:0,o:0,w:0,e:0,f:0,n:0};
+  const tot=avgPct(os),c={d:0,o:0,w:0,e:0,f:0,n:0},ss=sets();
   gsAll.forEach(g=>{ const s=gSt(g); if(gPct(g)>=100)c.d++; else if(s.t==='er')c.e++; else if(s.t==='wa')c.w++; else if(s.t==='ok')c.f++; else if(s.t==='nd')c.n++; else c.o++; });
-  const bar=(pct,cls,h8)=>'<div class="pb" style="margin-top:6px'+(h8?';height:8px':'')+'"><div class="pf '+cls+'" style="width:'+Math.max(0,Math.min(100,pct))+'%"></div></div>';
-  let h='<div class="card"><div class="row"><div class="f1"><div class="tm" style="font-size:18px;color:var(--p)">Tổng quan tất cả O</div><div class="ts">'+os.length+' O · '+gsAll.length+' KR · '+bsAll.length+' KA · '+asAll.length+' hành động</div></div><div style="text-align:right"><div class="mono tp" style="font-size:32px;font-weight:700">'+(tot===null?'—':tot+'%')+'</div></div></div>'+(tot!==null?bar(tot,'p',true):'')+'<div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;font-family:\'Space Mono\',monospace;font-size:12.5px;font-weight:600"><span style="color:var(--ok)">✅ '+c.d+' KR xong</span>'+(c.f?'<span style="color:var(--ok)">🚀 '+c.f+' nhanh</span>':'')+'<span style="color:var(--p)">● '+c.o+' đúng tiến độ</span><span style="color:var(--wa)">⚠️ '+c.w+' chậm</span><span style="color:var(--er)">🚨 '+c.e+' cần xử lý</span>'+(c.n?'<span style="color:var(--t3)">○ '+c.n+' chưa tính được</span>':'')+'</div></div>'+paceHelp();
-  os.forEach(p=>{ const gs=liveGoals(p.id),pp=pPct(p.id),thr=oThr(p),ok=pp!==null&&pp/100>=thr;
-    h+='<div class="card n" style="padding:16px"><div class="row top"><div class="f1"><div class="tm" style="font-size:15px">📁 '+esc(p.name)+'</div><div class="ts" style="font-size:12.5px">'+[p.role,p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div><div style="text-align:right;flex-shrink:0;font-family:\'Space Mono\',monospace"><div style="font-size:20px;font-weight:700;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':pp+'%')+'</div><div style="font-size:10.5px;color:var(--t3)">'+(pp===null?'chưa có KR':fmt(pp/100)+' / đạt '+fmt(thr))+'</div></div></div>'+(pp!==null?bar(pp,ok?'ok':'p',true):'')+(gs.length?oPaceLine(p.id,'margin:10px 0 0'):'');
-    if(!gs.length) h+='<div class="hint">Chưa có KR đang chạy.</div>';
-    gs.forEach(g=>{ const st=gSt(g),gp=gPct(g),kas=DB.behaviors.filter(b=>b.gid===g.id&&!b.archived);
-      h+='<div class="ovk" data-a="goG" data-id="'+esc(g.id)+'"><div class="row" style="gap:8px"><div class="f1 ovn">🎯 '+esc(g.name)+'</div><span class="ovv t'+(st.t==='on'||st.t==='nd'?'p':st.t)+'">'+gp+'%</span></div>'+bar(gp,st.t)+'<div class="ovs">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · '+st.l+'</div></div>';
-      kas.forEach(b=>{ const ad=kaAdh(b),cv=cover(b).filter(x=>x.n>0).length;
-        h+='<div class="ova" data-a="goB" data-id="'+esc(b.id)+'"><div class="f1 ovn" style="font-size:13px">💡 '+esc(b.name)+'</div><div class="ovs" style="margin:0;text-align:right;flex-shrink:0">'+(b.habit?'đã thành nếp':ad===null?(b.rhythm==='event'?cisOf(b.id).length+' lần':'chưa ghi nhận'):'giữ nhịp <b style="color:var(--'+(ad>=.8?'ok':ad>=.5?'wa':'er')+')">'+Math.round(ad*100)+'%</b>')+' · <span style="color:var(--'+(cv===6?'ok':cv?'t2':'er')+')">'+cv+'/6 nguồn</span></div></div>'; });
-      if(!kas.length) h+='<div class="ova"><div class="ovs" style="margin:0;color:var(--wa)">Chưa có KA</div></div>'; });
-    h+='</div>'; });
+  const bar=(pct,cls,h8,col)=>'<div class="pb" style="margin-top:6px'+(h8?';height:8px':'')+'"><div class="pf '+cls+'" style="width:'+Math.max(0,Math.min(100,pct))+'%'+(col?';background:'+col:'')+'"></div></div>';
+  let h='<div class="card"><div class="row"><div class="f1"><div class="tm" style="font-size:18px;color:var(--p)">Tổng quan theo bộ OKR</div><div class="ts">'+ss.length+' bộ · '+os.length+' O · '+gsAll.length+' KR · '+bsAll.length+' KA · '+asAll.length+' hành động</div></div><div style="text-align:right"><div class="mono tp" style="font-size:32px;font-weight:700">'+(tot===null?'—':tot+'%')+'</div></div></div>'+(tot!==null?bar(tot,'p',true):'')+'<div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;font-family:\'Space Mono\',monospace;font-size:12.5px;font-weight:600"><span style="color:var(--ok)">✅ '+c.d+' KR xong</span>'+(c.f?'<span style="color:var(--ok)">🚀 '+c.f+' nhanh</span>':'')+'<span style="color:var(--p)">● '+c.o+' đúng tiến độ</span><span style="color:var(--wa)">⚠️ '+c.w+' chậm</span><span style="color:var(--er)">🚨 '+c.e+' cần xử lý</span>'+(c.n?'<span style="color:var(--t3)">○ '+c.n+' chưa tính được</span>':'')+'</div>'+(ss.length>1?'<div class="setsum">'+ss.map(s=>{ const sp=avgPct(s.ps); return '<div class="setrow" data-a="pickSet" data-v="'+esc(s.n)+'" style="--sc:'+s.c+'"><span class="f1"><i></i>'+esc(s.n)+' <span class="ovs" style="margin:0">· '+s.ps.length+' O</span></span><b>'+(sp===null?'—':sp+'%')+'</b></div>'; }).join('')+'</div>':'')+'</div>'+paceHelp();
+  ss.forEach(s=>{ const sp=avgPct(s.ps);
+    h+='<div class="seth" style="--sc:'+s.c+'"><span><i></i>Bộ OKR · '+esc(s.n)+'</span><b>'+(sp===null?'—':sp+'%')+'</b></div>';
+    s.ps.forEach(p=>{ const gs=liveGoals(p.id),pp=pPct(p.id),thr=oThr(p),ok=pp!==null&&pp/100>=thr,k='ovka-'+p.id,nka=DB.behaviors.filter(b=>bLive(b)&&bPid(b)===p.id).length;
+      h+='<div class="card n" data-ov="'+esc(p.id)+'" style="padding:16px;border-left:3px solid '+s.c+'"><div class="row top"><div class="f1"><div class="tm" style="font-size:15px">📁 '+(p.code?esc(p.code)+' · ':'')+esc(p.name)+'</div><div class="ts" style="font-size:12.5px">'+[p.cycle,p.otype==='commit'?'Cam kết':'Khát vọng'].filter(Boolean).map(esc).join(' · ')+closedTag(p)+'</div></div><div style="text-align:right;flex-shrink:0;font-family:\'Space Mono\',monospace"><div style="font-size:20px;font-weight:700;color:var(--'+(ok?'ok':'p')+')">'+(pp===null?'—':pp+'%')+'</div><div style="font-size:10.5px;color:var(--t3)">'+(pp===null?'chưa có KR':fmt(pp/100)+' / đạt '+fmt(thr))+'</div></div></div>'+(pp!==null?bar(pp,ok?'ok':'p',true):'')+(gs.length?oPaceLine(p.id,'margin:10px 0 0'):'');
+      if(!gs.length) h+='<div class="hint">Chưa có KR đang chạy.</div>';
+      gs.forEach(g=>{ const st=gSt(g),gp=gPct(g),kas=DB.behaviors.filter(b=>b.gid===g.id&&!b.archived);
+        h+='<div class="ovk" data-a="goG" data-id="'+esc(g.id)+'"><div class="row" style="gap:8px"><div class="f1 ovn">🎯 '+esc(g.name)+'</div><span class="ovv t'+(st.t==='on'||st.t==='nd'?'p':st.t)+'">'+gp+'%</span></div><div class="ovs">'+fmt(gCur(g))+' / '+fmt(gTarget(g))+' '+esc(g.unit)+' · '+st.l+'</div></div>';
+        if(!OPEN.has(k)) return;
+        kas.forEach(b=>{ const ad=kaAdh(b),cv=cover(b).filter(x=>x.n>0).length;
+          h+='<div class="ova" data-a="goB" data-id="'+esc(b.id)+'"><div class="f1 ovn" style="font-size:13px">💡 '+esc(b.name)+'</div><div class="ovs" style="margin:0;text-align:right;flex-shrink:0">'+(b.habit?'đã thành nếp':ad===null?(b.rhythm==='event'?cisOf(b.id).length+' lần':'chưa ghi nhận'):'giữ nhịp <b style="color:var(--'+(ad>=.8?'ok':ad>=.5?'wa':'er')+')">'+Math.round(ad*100)+'%</b>')+' · <span style="color:var(--'+(cv===6?'ok':cv?'t2':'er')+')">'+cv+'/6 nguồn</span></div></div>'; });
+        if(!kas.length) h+='<div class="ova"><div class="ovs" style="margin:0;color:var(--wa)">Chưa có KA</div></div>'; });
+      if(nka) h+='<button class="lnk" style="margin:10px 0 0" data-a="more" data-id="'+esc(k)+'">'+(OPEN.has(k)?'▲ Ẩn KA':'▼ Hiện '+nka+' KA: giữ nhịp, độ phủ 6 nguồn')+'</button>';
+      h+='</div>'; }); });
   const na=DB.projects.length-os.length; if(na) h+='<div class="hint" style="margin-top:-6px">'+na+' O đã lưu trữ không hiện ở đây.</div>';
   return h;
 }
@@ -1139,12 +1178,13 @@ function askMerge(fresh){ confirmBox('Kho đã có '+countDB(fresh)+' bản ghi,
 function projBody(){
   const act=actP(),arc=DB.projects.filter(p=>p.status==='archived');
   let h='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">👁️ CHỌN O ĐỂ XEM</div><div style="border:1px solid var(--b1);border-radius:var(--rs);padding:10px;margin-bottom:18px;background:rgba(0,0,0,0.2)">';
-  h+=act.length?act.map(p=>{const on=UI.pids.includes(p.id);return '<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;border:1px solid '+(on?'var(--p)':'var(--b1)')+'"><div data-a="togP" data-id="'+esc(p.id)+'" style="display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer"><div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(on?'var(--p)':'var(--t3)')+';background:'+(on?'var(--p)':'transparent')+';color:#000;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(on?'✓':'')+'</div><div style="min-width:0"><div style="font-weight:bold;color:'+(on?'var(--p)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</div><div style="font-size:11px;color:var(--t3)">'+[p.role,p.cycle].filter(Boolean).map(esc).join(' · ')+'</div></div></div><div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button class="mb '+(isClosed(p)?'ok':'p')+'" style="padding:6px 5px;font-size:10.5px" data-a="closeO" data-id="'+esc(p.id)+'" title="'+(isClosed(p)?'Xem, sửa bản chốt':'Chốt chu kỳ, chấm điểm')+'">🏁 Chốt</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="eProj" data-id="'+esc(p.id)+'">✏️ Sửa</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="archP" data-id="'+esc(p.id)+'">📦 Lưu trữ</button><button class="mb er" style="padding:6px 5px;font-size:10.5px" data-a="dProj" data-id="'+esc(p.id)+'">🗑 Xóa</button></div></div>';}).join(''):'<div class="hint" style="text-align:center">Chưa có O nào.</div>';
+  const grpO=p=>{const on=UI.pids.includes(p.id);return '<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;border:1px solid '+(on?'var(--p)':'var(--b1)')+'"><div data-a="togP" data-id="'+esc(p.id)+'" style="display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer"><div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(on?'var(--p)':'var(--t3)')+';background:'+(on?'var(--p)':'transparent')+';color:#000;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(on?'✓':'')+'</div><div style="min-width:0"><div style="font-weight:bold;color:'+(on?'var(--p)':'var(--t1)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+'</div><div style="font-size:11px;color:var(--t3)">'+[p.role,p.cycle].filter(Boolean).map(esc).join(' · ')+'</div></div></div><div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button class="mb '+(isClosed(p)?'ok':'p')+'" style="padding:6px 5px;font-size:10.5px" data-a="closeO" data-id="'+esc(p.id)+'" title="'+(isClosed(p)?'Xem, sửa bản chốt':'Chốt chu kỳ, chấm điểm')+'">🏁 Chốt</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="eProj" data-id="'+esc(p.id)+'">✏️ Sửa</button><button class="mb" style="padding:6px 5px;font-size:10.5px" data-a="archP" data-id="'+esc(p.id)+'">📦 Lưu trữ</button><button class="mb er" style="padding:6px 5px;font-size:10.5px" data-a="dProj" data-id="'+esc(p.id)+'">🗑 Xóa</button></div></div>';};
+  h+=act.length?sets().map(st=>'<div class="seth" style="--sc:'+st.c+';margin:6px 0 8px"><span><i></i>Bộ OKR · '+esc(st.n)+'</span><button class="mb" style="padding:4px 8px;font-size:11px" data-a="pickSet" data-v="'+esc(st.n)+'">Chỉ xem bộ này</button></div>'+st.ps.map(grpO).join('')).join(''):'<div class="hint" style="text-align:center">Chưa có O nào.</div>';
   h+='</div><div style="display:flex;gap:10px;margin-bottom:18px"><button class="abtn" style="flex:1" data-a="newP">＋ TẠO O MỚI</button><button class="mb p" style="flex-shrink:0" data-a="imp">📥 Nhập Excel</button></div>';
   if(arc.length) h+='<div class="sl" style="margin:0 0 10px;font-size:12px;color:var(--t2)">📦 ĐÃ LƯU TRỮ</div>'+arc.map(p=>'<div style="background:var(--c1);padding:10px 12px;border-radius:var(--rs);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--b1)"><span style="color:var(--t3);font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.name)+(p.cycle?' · '+esc(p.cycle):'')+(isClosed(p)&&oFinal(p)!==null?' · 🏁 '+fmt(oFinal(p)):'')+'</span><span style="display:flex;gap:6px;flex-shrink:0"><button class="mb ok" style="padding:6px 10px;font-size:11px" data-a="resP" data-id="'+esc(p.id)+'">Khôi phục</button><button class="mb er" style="padding:6px 10px;font-size:11px" data-a="dProj" data-id="'+esc(p.id)+'">Xóa</button></span></div>').join('');
   return h;
 }
-ACT.oProj=()=>oMod('📁 O theo vai trò',projBody(),null,null);
+ACT.oProj=()=>oMod('📁 Bộ OKR và O',projBody(),null,null);
 const reProj=()=>{ if($('mo').classList.contains('on')&&!MCB) $('mb').innerHTML=projBody(); };
 ACT.togP=id=>{ if(UI.pids.includes(id)) UI.pids=UI.pids.filter(x=>x!==id); else UI.pids.push(id); LS.set(K.ui,UI); render(); reProj(); };
 ACT.archP=id=>confirmBox('Lưu trữ O này?','O và mọi KR, KA, hành động bên trong được giữ nguyên, chỉ ẩn khỏi màn hình. Khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ const p=P(id); if(!p) return; put('projects',Object.assign({},p,{status:'archived',archived_at:td()})); fixUI(); commit(); if(MCB) cMod(); else reProj(); toast('Đã lưu trữ O','ok'); }}]);
@@ -1160,7 +1200,7 @@ ACT.dProj=id=>{ const p=P(id); if(!p) return; const gs=DB.goals.filter(g=>g.pid=
 /* ---------------- form KR ---------------- */
 function fGoal(g,pid){
   g=g||{}; const ps=actP(),dp=g.pid||pid||UI.pids[0]||(ps[0]&&ps[0].id)||'',k=g.kind||'sum',kas=DB.behaviors.filter(b=>bPid(b)===dp&&bLive(b));
-  return '<div class="fg"><label class="fl">Thuộc O *</label><select class="fi" id="f-gp">'+ps.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===dp?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">KR: kết quả cần đạt *</label><input class="fi" id="f-gn" maxlength="300" value="'+esc(g.name)+'" placeholder="VD: Có đủ 50 giờ huấn luyện được ghi lại"></div><div class="fg"><label class="fl">Kiểu đo</label><select class="fi" id="f-gk" data-c="gKind"><option value="sum">Cộng dồn: mỗi lần nhập một con số</option><option value="list"'+(k==='list'?' selected':'')+'>Tích theo danh sách: từng phiên, từng doanh nghiệp, từng tuần</option><option value="ka"'+(k==='ka'?' selected':'')+'>Lấy từ KA: tự đếm theo việc làm KA</option></select></div><div id="x-ka" style="display:'+(k==='ka'?'block':'none')+'"><div class="frow"><div class="fg"><label class="fl">Lấy từ KA nào</label><select class="fi" id="f-gl"><option value="">— chọn sau —</option>'+kas.map(b=>'<option value="'+esc(b.id)+'"'+(b.id===g.link_bid?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Đếm gì</label><select class="fi" id="f-gm2"><option value="count">Số lần ghi nhận</option><option value="days"'+(g.link_mode==='days'?' selected':'')+'>Số ngày làm đủ</option></select></div></div></div><div class="frow"><div class="fg"><label class="fl">Đích (con số)</label><input class="fi" id="f-gt" type="number" inputmode="decimal" min="0" step="any" value="'+(g.target>0?g.target:'')+'" placeholder="VD: 50"><div class="hint" id="x-list" style="display:'+(k==='list'?'block':'none')+'">Để trống nghĩa là phải tích hết mọi dòng. VD 9/11 tuần thì đích là 9.</div></div><div class="fg"><label class="fl">Đơn vị</label><input class="fi" id="f-gu" maxlength="40" value="'+esc(g.unit)+'" placeholder="VD: giờ"></div></div><div class="fg"><label class="fl">Ý nghĩa: vì sao KR này quan trọng?</label><textarea class="fi" id="f-gy" rows="2" maxlength="600">'+esc(g.why)+'</textarea></div><div class="fg"><label class="fl">Cách đo</label><input class="fi" id="f-gm" maxlength="200" value="'+esc(g.measure)+'" placeholder="VD: Sổ giờ: ngày, doanh nghiệp, số giờ"></div><div class="frow"><div class="fg"><label class="fl">Thời điểm đo</label><input class="fi" id="f-gw" maxlength="120" value="'+esc(g.measure_when)+'" placeholder="VD: Hằng tuần; chốt 31/12"></div><div class="fg"><label class="fl">Người xác nhận</label><input class="fi" id="f-gc" maxlength="120" value="'+esc(g.confirmer)+'" placeholder="VD: Chị Lan Anh"></div></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-gs" type="date" value="'+esc(g.start_date||(g.id?'':td()))+'"></div><div class="fg"><label class="fl">Hạn</label><input class="fi" id="f-gd" type="date" value="'+esc(g.deadline)+'"></div></div><div class="fg"><label class="fl">Trọng số (tùy chọn)</label><input class="fi" id="f-gwt" type="number" min="0" max="100" step="any" value="'+(g.weight>0?g.weight:'')+'" placeholder="Bỏ trống: các KR chia đều"></div>';
+  return '<div class="fg"><label class="fl">Thuộc O *</label><select class="fi" id="f-gp">'+ps.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===dp?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">KR: kết quả cần đạt *</label><input class="fi" id="f-gn" maxlength="300" value="'+esc(g.name)+'" placeholder="VD: Có đủ 50 giờ huấn luyện được ghi lại"></div><div class="fg"><label class="fl">Kiểu đo</label><select class="fi" id="f-gk" data-c="gKind"><option value="sum">Cộng dồn: mỗi lần nhập một con số</option><option value="list"'+(k==='list'?' selected':'')+'>Tích theo danh sách: từng phiên, từng doanh nghiệp, từng tuần</option><option value="ka"'+(k==='ka'?' selected':'')+'>Lấy từ KA: tự đếm theo việc làm KA</option></select></div><div id="x-ka" style="display:'+(k==='ka'?'block':'none')+'"><div class="frow"><div class="fg"><label class="fl">Lấy từ KA nào</label><select class="fi" id="f-gl"><option value="">— chọn sau —</option>'+kas.map(b=>'<option value="'+esc(b.id)+'"'+(b.id===g.link_bid?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Đếm gì</label><select class="fi" id="f-gm2"><option value="count">Số lần ghi nhận</option><option value="days"'+(g.link_mode==='days'?' selected':'')+'>Số ngày làm đủ</option></select></div></div></div><div class="frow"><div class="fg"><label class="fl">Đích (con số)</label><input class="fi" id="f-gt" type="number" inputmode="decimal" min="0" step="any" value="'+(g.target>0?g.target:'')+'" placeholder="VD: 50"><div class="hint" id="x-list" style="display:'+(k==='list'?'block':'none')+'">Để trống nghĩa là phải tích hết mọi dòng. VD 9/11 tuần thì đích là 9.</div></div><div class="fg"><label class="fl">Đơn vị</label><input class="fi" id="f-gu" maxlength="40" value="'+esc(g.unit)+'" placeholder="VD: giờ"></div></div><div class="fg"><label class="fl">Ý nghĩa: vì sao KR này quan trọng?</label><textarea class="fi" id="f-gy" rows="2" maxlength="600">'+esc(g.why)+'</textarea></div><div class="fg"><label class="fl">Cách đo</label><input class="fi" id="f-gm" maxlength="200" value="'+esc(g.measure)+'" placeholder="VD: Sổ giờ: ngày, doanh nghiệp, số giờ"></div><div class="frow"><div class="fg"><label class="fl">Thời điểm đo</label><input class="fi" id="f-gw" maxlength="120" value="'+esc(g.measure_when)+'" placeholder="VD: Hằng tuần; chốt 31/12"></div><div class="fg"><label class="fl">Người xác nhận</label><input class="fi" id="f-gc" maxlength="120" value="'+esc(g.confirmer)+'" placeholder="VD: Chị Lan Anh"></div></div><div class="frow"><div class="fg"><label class="fl">Bắt đầu</label><input class="fi" id="f-gs" type="date" value="'+esc(g.start_date||(g.id?'':td()))+'"></div><div class="fg"><label class="fl">Hạn</label><input class="fi" id="f-gd" type="date" value="'+esc(g.deadline)+'"></div></div><div class="fg"><label class="fl">Trọng số (tùy chọn)</label><input class="fi" id="f-gwt" type="number" min="0" max="100" step="any" value="'+(g.weight>0?g.weight:'')+'" placeholder="Bỏ trống: các KR chia đều"></div>'+(g.id&&!g.archived?'<button class="mb" data-a="arcG" data-id="'+esc(g.id)+'">📦 Lưu trữ KR này</button>':'');
 }
 CHG.gKind=el=>{ $('x-ka').style.display=el.value==='ka'?'block':'none'; $('x-list').style.display=el.value==='list'?'block':'none'; };
 function saveGoal(old){
@@ -1179,15 +1219,15 @@ ACT.dGoal=id=>{ const g=G(id); if(!g) return; const bs=DB.behaviors.filter(b=>b.
   askDel('Xóa KR «'+g.name+'»?','Xóa kèm '+bs.length+' KA, '+na+' hành động và '+nl+' dòng số liệu bên trong. Không hoàn tác được. Nếu chỉ muốn ẩn đi, hãy dùng Lưu trữ.',()=>{ delGoalRec(id); commit(); }); };
 function delGoalRec(id){ DB.behaviors.filter(b=>b.gid===id).forEach(b=>delBehRec(b.id)); DB.logs.filter(l=>l.gid===id).forEach(l=>del('logs',l.id)); DB.items.filter(i=>i.gid===id).forEach(i=>del('items',i.id)); del('goals',id); }
 /* lưu trữ: ẩn khỏi màn hình và không tính vào tiến độ, dữ liệu giữ nguyên, khôi phục được */
-ACT.arcG=id=>{ const g=G(id); if(!g) return; const bs=DB.behaviors.filter(b=>b.gid===id); confirmBox('Lưu trữ KR «'+g.name+'»?','KR cùng '+bs.length+' KA và '+DB.actions.filter(a=>bs.some(b=>b.id===a.bid)).length+' hành động bên trong sẽ ẩn khỏi màn hình và không tính vào tiến độ của O. Dữ liệu giữ nguyên, khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ put('goals',Object.assign({},g,{archived:true,archived_at:td()})); commit(); toast('Đã lưu trữ KR','ok'); }}]); };
+ACT.arcG=id=>{ const g=G(id); if(!g) return; const bs=DB.behaviors.filter(b=>b.gid===id); confirmBox('Lưu trữ KR «'+g.name+'»?','KR cùng '+bs.length+' KA và '+DB.actions.filter(a=>bs.some(b=>b.id===a.bid)).length+' hành động bên trong sẽ ẩn khỏi màn hình và không tính vào tiến độ của O. Dữ liệu giữ nguyên, khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ put('goals',Object.assign({},g,{archived:true,archived_at:td()})); if(MCB) cMod(); commit(); toast('Đã lưu trữ KR','ok'); }}]); };
 ACT.unG=id=>{ const g=G(id); if(!g) return; put('goals',Object.assign({},g,{archived:false,archived_at:''})); OPEN.add('gd-'+id); commit(); toast('Đã khôi phục KR','ok'); };
-ACT.arcB=id=>{ const b=B(id); if(!b) return; confirmBox('Lưu trữ KA «'+b.name+'»?','KA cùng '+DB.actions.filter(a=>a.bid===id).length+' hành động của nó sẽ ẩn khỏi màn hình và không còn nhắc hằng ngày. Dữ liệu giữ nguyên, khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ put('behaviors',Object.assign({},b,{archived:true,archived_at:td()})); commit(); toast('Đã lưu trữ KA','ok'); }}]); };
+ACT.arcB=id=>{ const b=B(id); if(!b) return; confirmBox('Lưu trữ KA «'+b.name+'»?','KA cùng '+DB.actions.filter(a=>a.bid===id).length+' hành động của nó sẽ ẩn khỏi màn hình và không còn nhắc hằng ngày. Dữ liệu giữ nguyên, khôi phục lại được.',[{l:'Không',c:'bs'},{l:'Lưu trữ',c:'bd',f:()=>{ put('behaviors',Object.assign({},b,{archived:true,archived_at:td()})); if(MCB) cMod(); commit(); toast('Đã lưu trữ KA','ok'); }}]); };
 ACT.unB=id=>{ const b=B(id); if(!b) return; put('behaviors',Object.assign({},b,{archived:false,archived_at:''})); commit(); toast('Đã khôi phục KA','ok'); };
 
 /* ---------------- form KA ---------------- */
 function fBeh(b,gid){
   b=b||{}; const gs=selGoals().slice(); if(b.gid&&G(b.gid)&&!gs.includes(G(b.gid))) gs.push(G(b.gid)); const dg=b.gid||gid||'',r=b.rhythm||'daily',rest=restSet(b),multi=UI.pids.length>1;
-  return '<div class="fg"><label class="fl">Thuộc KR *</label><select class="fi" id="f-bg">'+(gs.length?'':'<option value="">— Chưa có KR nào, hãy tạo KR trước —</option>')+gs.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===dg?' selected':'')+'>'+esc((multi&&P(g.pid)?'['+P(g.pid).name+'] ':'')+g.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Bắt đầu đếm từ ngày *</label><input class="fi" id="f-bst" type="date" value="'+esc(b.id?kaStart(b)||td():td())+'"><div class="hint">Lịch, chuỗi và tỷ lệ giữ nhịp đều tính từ ngày này. Ngày chưa làm sau mốc này là bỏ lỡ.</div></div><div class="fg"><label class="fl">KA: hành vi then chốt *</label><input class="fi" id="f-bn" maxlength="300" value="'+esc(b.name)+'" placeholder="VD: Mỗi tuần mời 3 doanh nghiệp tham gia phiên"></div><div class="frow"><div class="fg"><label class="fl">Nhịp làm</label><select class="fi" id="f-br" data-c="bRhythm">'+Object.keys(RH).map(k=>'<option value="'+k+'"'+(k===r?' selected':'')+'>'+RH[k]+'</option>').join('')+'</select></div><div class="fg" id="x-q" style="display:'+(r==='weekly'?'block':'none')+'"><label class="fl">Số lần mỗi tuần</label><input class="fi" id="f-bq" type="number" min="1" max="50" step="1" value="'+(b.quota||1)+'"></div><div class="fg" id="x-s" style="display:'+(r==='multi'?'block':'none')+'"><label class="fl">Các lần trong ngày</label><input class="fi" id="f-bs" maxlength="80" value="'+esc(b.slots||'Sáng, Trưa, Tối')+'"><div class="hint">2 đến 4 tên, cách nhau bằng dấu phẩy.</div></div></div><div class="fg" id="x-r" style="display:'+(r==='daily'||r==='multi'?'block':'none')+'"><label class="fl">Ngày nghỉ (không làm đứt chuỗi)</label><input type="hidden" id="f-brest" value="'+[...rest].join(',')+'"><div class="wds">'+WD.map((w,i)=>'<span class="wd'+(rest.has(i)?' on':'')+'" data-a="wd" data-v="'+i+'">'+w+'</span>').join('')+'</div></div><div class="fg"><label class="fl">Mô tả, tiêu chí làm đúng</label><textarea class="fi" id="f-bd" rows="2" maxlength="600">'+esc(b.desc)+'</textarea></div><div class="fg"><label class="fl">Lộ trình ba mốc (tùy chọn)</label><input class="fi" id="f-b1" maxlength="200" value="'+esc(b.m1)+'" placeholder="Mốc 1 · thử: tìm chỗ vừa" style="margin-bottom:6px"><input class="fi" id="f-b2" maxlength="200" value="'+esc(b.m2)+'" placeholder="Mốc 2 · bỏ cái thừa" style="margin-bottom:6px"><input class="fi" id="f-b3" maxlength="200" value="'+esc(b.m3)+'" placeholder="Mốc 3 · thành nếp"></div>'+(b.id?'<div class="fg"><label class="fl"><input type="checkbox" id="f-bh"'+(b.habit?' checked':'')+'> Đã thành nếp: không nhắc hằng ngày nữa</label></div>':'');
+  return '<div class="fg"><label class="fl">Thuộc KR *</label><select class="fi" id="f-bg">'+(gs.length?'':'<option value="">— Chưa có KR nào, hãy tạo KR trước —</option>')+gs.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===dg?' selected':'')+'>'+esc((multi&&P(g.pid)?'['+P(g.pid).name+'] ':'')+g.name)+'</option>').join('')+'</select></div><div class="fg"><label class="fl">Bắt đầu đếm từ ngày *</label><input class="fi" id="f-bst" type="date" value="'+esc(b.id?kaStart(b)||td():td())+'"><div class="hint">Lịch, chuỗi và tỷ lệ giữ nhịp đều tính từ ngày này. Ngày chưa làm sau mốc này là bỏ lỡ.</div></div><div class="fg"><label class="fl">KA: hành vi then chốt *</label><input class="fi" id="f-bn" maxlength="300" value="'+esc(b.name)+'" placeholder="VD: Mỗi tuần mời 3 doanh nghiệp tham gia phiên"></div><div class="frow"><div class="fg"><label class="fl">Nhịp làm</label><select class="fi" id="f-br" data-c="bRhythm">'+Object.keys(RH).map(k=>'<option value="'+k+'"'+(k===r?' selected':'')+'>'+RH[k]+'</option>').join('')+'</select></div><div class="fg" id="x-q" style="display:'+(r==='weekly'?'block':'none')+'"><label class="fl">Số lần mỗi tuần</label><input class="fi" id="f-bq" type="number" min="1" max="50" step="1" value="'+(b.quota||1)+'"></div><div class="fg" id="x-s" style="display:'+(r==='multi'?'block':'none')+'"><label class="fl">Các lần trong ngày</label><input class="fi" id="f-bs" maxlength="80" value="'+esc(b.slots||'Sáng, Trưa, Tối')+'"><div class="hint">2 đến 4 tên, cách nhau bằng dấu phẩy.</div></div></div><div class="fg" id="x-r" style="display:'+(r==='daily'||r==='multi'?'block':'none')+'"><label class="fl">Ngày nghỉ (không làm đứt chuỗi)</label><input type="hidden" id="f-brest" value="'+[...rest].join(',')+'"><div class="wds">'+WD.map((w,i)=>'<span class="wd'+(rest.has(i)?' on':'')+'" data-a="wd" data-v="'+i+'">'+w+'</span>').join('')+'</div></div><div class="fg"><label class="fl">Mô tả, tiêu chí làm đúng</label><textarea class="fi" id="f-bd" rows="2" maxlength="600">'+esc(b.desc)+'</textarea></div><div class="fg"><label class="fl">Lộ trình ba mốc (tùy chọn)</label><input class="fi" id="f-b1" maxlength="200" value="'+esc(b.m1)+'" placeholder="Mốc 1 · thử: tìm chỗ vừa" style="margin-bottom:6px"><input class="fi" id="f-b2" maxlength="200" value="'+esc(b.m2)+'" placeholder="Mốc 2 · bỏ cái thừa" style="margin-bottom:6px"><input class="fi" id="f-b3" maxlength="200" value="'+esc(b.m3)+'" placeholder="Mốc 3 · thành nếp"></div>'+(b.id?'<div class="fg"><label class="fl"><input type="checkbox" id="f-bh"'+(b.habit?' checked':'')+'> Đã thành nếp: không nhắc hằng ngày nữa</label></div>':'')+(b.id&&!b.archived?'<button class="mb" data-a="arcB" data-id="'+esc(b.id)+'">📦 Lưu trữ KA này</button>':'');
 }
 CHG.bRhythm=el=>{ const r=el.value; $('x-q').style.display=r==='weekly'?'block':'none'; $('x-s').style.display=r==='multi'?'block':'none'; $('x-r').style.display=(r==='daily'||r==='multi')?'block':'none'; };
 ACT.wd=(id,v,el)=>{ el.classList.toggle('on'); $('f-brest').value=[...document.querySelectorAll('#mb .wd.on')].map(x=>x.dataset.v).join(','); };
@@ -1221,10 +1261,11 @@ ACT.addAct=(bid,src)=>{ if(!DB.behaviors.length) return toast('Hãy tạo KA tr�
 ACT.eAct=id=>{ const a=A(id); if(a) oMod('✏️ Sửa hành động',fAct(a),()=>saveAct(a),()=>ACT.dAct(id)); };
 
 /* ---------------- gắn sự kiện, khởi động ---------------- */
-document.addEventListener('click',e=>{ const el=e.target.closest('[data-a]'); if(!el) return; const f=ACT[el.dataset.a]; if(f){ e.preventDefault(); f(el.dataset.id||'',el.dataset.v||'',el); } });
+document.addEventListener('click',e=>{ const el=e.target.closest('[data-a]'); if(!el) return; const f=ACT[el.dataset.a]; if(f){ e.preventDefault(); if(AUTH.ro&&WRITE.has(el.dataset.a)) return askEdit(); f(el.dataset.id||'',el.dataset.v||'',el); } });
+document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.dataset&&d.dataset.k){ if(d.open) OPEN.add(d.dataset.k); else OPEN.delete(d.dataset.k); } },true);
 document.addEventListener('change',e=>{ const el=e.target.closest('[data-c]'); if(el&&CHG[el.dataset.c]) CHG[el.dataset.c](el); const i=e.target.closest('[data-i]'); if(i&&INP[i.dataset.i]) INP[i.dataset.i](i); });
 document.addEventListener('input',e=>{ const el=e.target.closest('[data-i]'); if(el&&INP[el.dataset.i]) INP[el.dataset.i](el); });
-document.addEventListener('keydown',e=>{ if(e.key!=='Enter'||e.isComposing) return; const el=e.target; if(el.id==='password-input'||el.id==='url-input'){ e.preventDefault(); unlock(); return; } if(el.dataset&&el.dataset.enter&&ACT[el.dataset.enter]){ e.preventDefault(); ACT[el.dataset.enter](el.dataset.id||'',el.dataset.v||'',el); } });
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter'||e.isComposing) return; const el=e.target; if(el.id==='password-input'||el.id==='url-input'){ e.preventDefault(); unlock(); return; } if(el.dataset&&el.dataset.enter&&ACT[el.dataset.enter]){ e.preventDefault(); if(AUTH.ro) return askEdit(); ACT[el.dataset.enter](el.dataset.id||'',el.dataset.v||'',el); } });
 $('mo').addEventListener('click',e=>{ if(e.target===$('mo')) cMod(); });
 $('restore-file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ let j; try{ j=JSON.parse(rd.result); }catch(x){ return toast('File không đọc được','er'); } if(!j||!Array.isArray(j.projects)||!Array.isArray(j.goals)) return toast('File không đúng định dạng sao lưu','er'); const nd=normDB(j); confirmBox('Khôi phục từ file này?','File có '+countDB(nd)+' bản ghi. Toàn bộ dữ liệu hiện tại ('+countDB(DB)+' bản ghi) sẽ bị thay thế'+(AUTH.local?'.':', cả trên máy lẫn trên kho.'),[{l:'Không',c:'bs'},{l:'Thay thế',c:'bd',f:()=>applyRestore(nd)}]); }; rd.readAsText(f); });
 
@@ -1767,6 +1808,99 @@ ACT.impTpl=()=>{ const bs=DB.behaviors.filter(b=>b.code&&bLive(b)).sort((a,b)=>a
   rows.push([]); rows.push(['Nguồn: 1 Động lực cá nhân · 2 Năng lực cá nhân · 3 Động lực xã hội · 4 Năng lực xã hội · 5 Động lực cấu trúc · 6 Năng lực cấu trúc']);
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'})); a.download='Mau_HanhDong_6_nguon.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Đã tải file mẫu','ok'); };
 $('xlsx-file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) impReadFile(f); });
+
+/* ============================================================
+   BỘ OKR theo vai trò · CHẾ ĐỘ XEM cho người có link · BẢN ĐỌC dạng chữ
+   ============================================================ */
+const setOf=p=>String((p&&p.role)||'').trim()||'Chưa có vai trò';
+const SETC=['#FFD400','#3fe0c5','#ff8fab','#79b8ff','#c39bff','#ffb347','#9be15d'];
+function setColors(){   // mỗi bộ một màu, không trùng nhau, giữ nguyên giữa các máy
+  const names=[...new Set(DB.projects.map(setOf))].sort((a,b)=>a.localeCompare(b,'vi')),used=new Set(),m={};
+  names.forEach(n=>{ let h=0; for(const ch of n) h=(h*31+ch.codePointAt(0))>>>0; let i=h%SETC.length,k=0; while(used.has(i)&&k<SETC.length){ i=(i+1)%SETC.length; k++; } used.add(i); m[n]=SETC[i]; });
+  return m;
+}
+const setCol=n=>setColors()[n]||SETC[0];
+const oKey=p=>p.code?String(p.code):'~'+(p.created||'')+p.name;
+function sets(){   // các bộ OKR đang chạy (theo vai trò), mỗi bộ gồm các O cùng vai trò
+  const m=new Map(),cm=setColors(); actP().forEach(p=>{ const n=setOf(p); if(!m.has(n)) m.set(n,[]); m.get(n).push(p); });
+  const cmp=(a,b)=>oKey(a).localeCompare(oKey(b),undefined,{numeric:true});
+  return [...m].map(([n,ps])=>({n,c:cm[n]||SETC[0],ps:ps.sort(cmp)})).sort((a,b)=>cmp(a.ps[0],b.ps[0])||a.n.localeCompare(b.n,'vi'));
+}
+const avgPct=ps=>{ const xs=ps.map(p=>pPct(p.id)).filter(x=>x!==null); return xs.length?Math.round(xs.reduce((a,c)=>a+c,0)/xs.length):null; };
+function curSet(){ const sel=[...UI.pids].sort().join(),ss=sets(); if(sel===actP().map(p=>p.id).sort().join()) return {all:true}; const s=ss.find(x=>x.ps.map(p=>p.id).sort().join()===sel); return s?{set:s}:{custom:true}; }
+ACT.pickSet=(id,v)=>{ const s=sets().find(x=>x.n===v); UI.pids=s?s.ps.map(p=>p.id):actP().map(p=>p.id); LS.set(K.ui,UI); if($('mo').classList.contains('on')&&!MCB) cMod(); render(); };
+function setBar(){
+  const ss=sets(); if(!ss.length) return ''; const cs=curSet(),ap=avgPct(actP());
+  return (ss.length>1?'<button class="sc'+(cs.all?' on':'')+'" data-a="pickSet" data-v="">Tất cả'+(ap===null?'':' · '+ap+'%')+'</button>':'')+ss.map(s=>{ const p=avgPct(s.ps),on=cs.set&&cs.set.n===s.n||(ss.length===1&&cs.all); return '<button class="sc'+(on?' on':'')+'" data-a="pickSet" data-v="'+esc(s.n)+'" style="--sc:'+s.c+'"><i></i>'+esc(s.n)+(p===null?'':' · '+p+'%')+'</button>'; }).join('')+(cs.custom?'<button class="sc on" data-a="oProj">'+UI.pids.length+' O đã chọn</button>':'');
+}
+
+/* ---------- chế độ xem: chỉ chủ app (có mật khẩu) mới sửa được ---------- */
+const WRITE=new Set(['ci','ciSlot','ciPlus','ciMinus','bf','bu','calTap','logQ','logIn','logOther','delLog','itAdd','itTog','itEdit','newP','eProj','dProj','archP','resP','newG','eGoal','dGoal','arcG','unG','newB','eBeh','dBeh','arcB','unB','addAct','eAct','dAct','cyc','actTog','actDone','rvSave','rvDel','rvPick','closeO','imp','impFile','impPaste','impLegacy','restore','connect']);
+(function(){ const hide=['newP','eProj','dProj','archP','resP','newG','eGoal','dGoal','arcG','unG','newB','eBeh','dBeh','arcB','unB','addAct','eAct','dAct','delLog','itAdd','itEdit','logOther','imp','restore','impLegacy','closeO','bf','rvDel','rvSave','connect'];
+  const st=document.createElement('style'); st.textContent=hide.map(a=>'body.ro button[data-a="'+a+'"]').join(',')+',body.ro #rv-form,body.ro .lr,body.ro .qcs,body.ro .krup,body.ro .lnk[data-a="newB"],body.ro .lnk[data-a="imp"]{display:none!important}'; document.head.appendChild(st); })();
+function askEdit(){
+  oMod('🔓 Mở quyền sửa','<p style="font-size:14.5px;color:var(--t2);margin-bottom:14px">Ai có link đều xem được app này. Chỉ chủ app sửa được: nhập mật khẩu một lần, máy này sẽ nhớ.</p><input class="fi" id="f-edpw" type="password" autocomplete="current-password" placeholder="Mật khẩu" data-enter="edGo">',()=>{ edGo(); return false; },null,'MỞ QUYỀN SỬA');
+  setTimeout(()=>{ const e=$('f-edpw'); if(e) e.focus(); },120);
+}
+ACT.edMode=()=>{ if(AUTH.ro) askEdit(); };
+async function edGo(){
+  const e=$('f-edpw'),pw=e?e.value:''; if(!pw) return toast('Nhập mật khẩu','er');
+  const btn=$('mbok'); btn.disabled=true;
+  try{ const r=await fetch(AUTH.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ping',pwd:pw})}).then(x=>x.json());
+    if(r&&r.ok){ AUTH.pwd=pw; AUTH.ro=false; LS.set(K.pwd,pw); btn.disabled=false; cMod(); render(); toast('Đã mở quyền sửa trên máy này','ok'); pull(false); repSoon(); return; }
+    toast('Mật khẩu không đúng','er'); }
+  catch(x){ toast('Không kết nối được kho dữ liệu','er'); }
+  btn.disabled=false;
+}
+ACT.edGo=()=>edGo();
+const readUrl=()=>AUTH.url||'';
+function shareBox(){
+  if(AUTH.local||!AUTH.url) return '';
+  return '<div class="ni" id="share-box"><div style="font-weight:bold;margin-bottom:4px">🔗 Chia sẻ để người khác xem</div><div style="font-size:13.5px;color:var(--t2);line-height:1.5">'+(location.protocol.startsWith('http')?'<div><b>Link app</b> (xem trên điện thoại, không cần mật khẩu): <span class="pre">'+esc(location.origin+location.pathname)+'</span></div>':'')+'<div style="margin-top:4px"><b>Link bản đọc dạng chữ</b> (gửi cho Claude hoặc người không cần app): <span class="pre" style="word-break:break-all">'+esc(readUrl())+'</span></div><div class="ovs" style="margin-top:4px">Người có link chỉ xem, không sửa được. Bản đọc tự cập nhật mỗi khi anh thay đổi dữ liệu trên máy có quyền sửa.</div></div><button class="mb" style="margin-top:8px" data-a="copyRead">📋 Chép link bản đọc</button></div>';
+}
+ACT.copyRead=()=>{ const u=readUrl(); try{ navigator.clipboard.writeText(u).then(()=>toast('Đã chép link bản đọc','ok'),()=>toast(u,'ok')); }catch(e){ toast(u,'ok'); } };
+
+/* ---------- bản đọc dạng chữ: app của chủ tạo, gửi lên kho, ai mở link /exec cũng đọc được ---------- */
+const txt=html=>{ const d=document.createElement('div'); d.innerHTML=html; d.querySelectorAll('div,br').forEach(x=>x.insertAdjacentText('afterend','\n')); return d.textContent.replace(/[ \t]+\n/g,'\n').replace(/\n{2,}/g,'\n').trim(); };
+function reportText(){
+  const t=td(),L=[],os=actP(),now=new Date();
+  L.push('# GÂY ẢNH HƯỞNG · BẢN ĐỌC OKR','Cập nhật: '+now.toLocaleDateString('vi-VN')+' '+now.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+' · hôm nay '+WD[pd(t).getDay()]+' '+fd(t)+'/'+t.slice(0,4),
+    'Cấu trúc: Bộ OKR (vai trò) → O → KR → KA (hành vi then chốt) → hành động theo 6 nguồn ảnh hưởng.',
+    'Cách đọc: % kết quả = đạt ÷ đích. Tốc độ = % kết quả ÷ % thời gian đã qua; 1,0 là đúng nhịp. Khát vọng: 0,7 là đạt; Cam kết: 1,0 là đạt.','');
+  const ss=sets(); L.push('## Tóm tắt'); ss.forEach(s=>{ const sp=avgPct(s.ps); L.push('- Bộ OKR '+s.n+': '+(sp===null?'—':sp+'%')+' · '+s.ps.map(p=>(p.code||p.name)+' '+(pPct(p.id)===null?'—':pPct(p.id)+'%')+' '+oSt(p.id).l).join(' · ')); }); L.push('');
+  ss.forEach(s=>{ L.push('## BỘ OKR · '+s.n.toUpperCase()+' · '+(avgPct(s.ps)===null?'—':avgPct(s.ps)+'%'),'');
+    s.ps.forEach(p=>{ const os2=oSt(p.id);
+      L.push('### '+(p.code?p.code+' · ':'')+p.name);
+      L.push([p.cycle,(p.start_date||p.end_date)?fd(p.start_date)+'–'+fd(p.end_date):'',p.otype==='commit'?'Cam kết (đạt ở 1,0)':'Khát vọng (đạt ở 0,7)',isClosed(p)?'đã chốt, tự chấm '+fmt(oFinal(p)):''].filter(Boolean).join(' · '));
+      L.push('Tiến độ: '+(pPct(p.id)===null?'—':pPct(p.id)+'%')+' · '+os2.l+(os2.tp!==undefined?' (kết quả '+Math.round(os2.rp)+'% · thời gian '+Math.round(os2.tp)+'%'+(os2.spd?' · tốc độ '+fmt(os2.spd):'')+')':''));
+      if(p.desc) L.push('Ý nghĩa: '+p.desc);
+      liveGoals(p.id).forEach(g=>{ const st=gSt(g);
+        L.push('','- KR '+(g.code?g.code+' · ':'')+g.name);
+        L.push('  Đạt '+fmt(gCur(g))+' / '+fmt(gTarget(g))+(g.unit?' '+g.unit:'')+' = '+gPct(g)+'% · '+st.l+(gEnd(g)?' · hạn '+fd(gEnd(g)):'')+(g.confirmer?' · người xác nhận: '+g.confirmer:''));
+        const nl=needLine(g); if(nl) L.push('  '+nl);
+        DB.behaviors.filter(b=>b.gid===g.id&&bLive(b)).forEach(b=>{ const ad=kaAdh(b),cv=cover(b),si=streakInfo(b);
+          L.push('  - KA '+(b.code?b.code+' · ':'')+b.name);
+          L.push('    Nhịp: '+RH[b.rhythm]+(b.rhythm==='weekly'?' '+b.quota+' lần':'')+(b.habit?' · đã thành nếp':'')+(b.rhythm!=='event'?' · chuỗi '+si.n+(b.rhythm==='weekly'?' tuần':' ngày'):'')+(ad===null?'':' · giữ nhịp '+Math.round(ad*100)+'%')+' · từ '+fd(kaStart(b)));
+          if(b.rhythm!=='event') L.push('    7 ngày: '+last7(b).map(x=>WD[pd(x.d).getDay()]+' '+(x.c==='on'?'✓':x.c==='pt'?'½':x.c==='rs'?'nghỉ':'·')).join(' | '));
+          L.push('    6 nguồn: '+cv.filter(x=>x.n>0).length+'/6 có hành động'+(cv.some(x=>!x.n)?' · còn trống: '+cv.filter(x=>!x.n).map(x=>x.s.id+' '+x.s.s).join(', '):''));
+          DB.actions.filter(a=>a.bid===b.id).sort((a,c)=>a.source-c.source).forEach(a=>{ const sr=SRC[a.source-1]; L.push('    - [N'+sr.id+' '+sr.s+' · '+ST[a.status].l+'] '+a.name+(a.assignee?' · '+a.assignee:'')+(a.deadline?' · hạn '+fd(a.deadline):'')+(a.note?' · '+a.note:'')); });
+        });
+      });
+      L.push('');
+    });
+  });
+  const rs=reviews(); if(rs.length){ L.push('## RÀ SOÁT TUẦN ('+rs.length+' tuần, mới nhất trước)',''); rs.forEach(r=>{ L.push(txt(rvFull(r)),''); }); }
+  const cl=DB.projects.filter(isClosed); if(cl.length){ L.push('## CHỐT CHU KỲ',''); cl.forEach(p=>{ L.push('### '+p.name+' · '+(p.cycle||'')+' · tự chấm '+fmt(oFinal(p))+' ('+(passed(p,oFinal(p))?'đạt':'chưa đạt')+')'); [['Câu chuyện sau con số',p.story],['6 nguồn',p.src_note],['Bài học',p.lessons]].forEach(x=>{ if(String(x[1]||'').trim()) L.push(x[0]+': '+x[1]); }); L.push(''); }); }
+  return L.join('\n');
+}
+let repT=null,repLast='';
+function repSoon(){ if(AUTH.ro||AUTH.local||!AUTH.url||!AUTH.pwd) return; clearTimeout(repT); repT=setTimeout(repSend,4000); }
+function repDaily(){ if(LS.get('gah2_rep_day','')!==td()) repSoon(); }
+async function repSend(){
+  if(AUTH.ro||AUTH.local||!AUTH.pwd) return; const text=reportText(),k=text.replace(/^Cập nhật:.*$/m,'');
+  if(k===repLast&&LS.get('gah2_rep_day','')===td()) return;
+  try{ const r=await api({action:'report',text}); if(r&&r.ok){ repLast=k; LS.set('gah2_rep_day',td()); } }catch(e){}
+}
 
 boot();
 </script>
